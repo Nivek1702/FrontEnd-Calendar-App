@@ -5,23 +5,27 @@ import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
 
 export default function Login() {
   const nav = useNavigate();
-  const [email, setEmail] = useState("");
+  const [user, setUser] = useState("");
   const [pwd, setPwd] = useState("");
-  const [err, setErr] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErr("");
+    setError(null);
+    setLoading(true);
     try {
-      const res = await api.post("/api/auth/login", { email, password: pwd });
-      if ("access_token" in res.data) {
-        localStorage.setItem("token", res.data.access_token);
-        nav("/dashboard");
+      const { data } = await api.post("/users/login_user", { username: user, password: pwd });
+      if (data === true) {
+        // navega a dashboard
+        nav("/dashboard"); // si usas react-router
       } else {
-        setErr(res.data.detail ?? "Credenciales inválidas");
+       setError("Credenciales inválidas");
       }
-    } catch (error: any) {
-      setErr(error?.response?.data?.detail ?? "Error de conexión");
+    } catch (err) {
+      setError("Error de conexión");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,15 +39,15 @@ export default function Login() {
 
               <Form onSubmit={onSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Correo</Form.Label>
-                  <Form.Control type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
+                  <Form.Label>Usuario</Form.Label>
+                  <Form.Control type="user" value={user} onChange={e=>setUser(e.target.value)} required />
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Contraseña</Form.Label>
                   <Form.Control type="password" value={pwd} onChange={e=>setPwd(e.target.value)} required />
                 </Form.Group>
-                {err && <div className="text-danger mb-3">{err}</div>}
-                <Button type="submit" variant="primary" className="w-100">Ingresar</Button>
+                 {error && <p className="text-danger mt-2">{error}</p>}
+                <Button type="submit" variant="primary" className="w-100">Ingresar {loading ? "Ingresando..." : "Ingresar"}</Button>
               </Form>
             </Card.Body>
           </Card>

@@ -1,191 +1,172 @@
-/* ===========================
-   Base (pantalla completa)
-   =========================== */
-html, body, #root { height: 100%; }
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  color: #213547;
-  background: #ffffff;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+/* --- Contenedor base --- */
+.react-calendar {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
 }
 
-/* ===========================
-   Layout de la página del calendario
-   =========================== */
-.calendar-page {
-  --topbar: 56px;            /* ajusta según la altura real de tu TopBar */
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+/* --- Cabecera de días (LUN, MAR, ...) y grilla de días: 7 columnas --- */
+.react-calendar__month-view__weekdays,
+.react-calendar__month-view__days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important; /* 7 columnas SIEMPRE */
+  gap: 12px; /* espacio entre columnas/filas */
 }
 
-.calendar-viewport {
-  height: calc(100vh - var(--topbar));
-  display: grid;
-  grid-template-rows: auto 1fr auto;       /* título, calendario, botones */
-  row-gap: 12px;
-  padding-block: 8px;
-}
-
-.calendar-header {
+/* Centrar texto del header (LUN, MAR, ...) */
+.react-calendar__month-view__weekdays__weekday {
   text-align: center;
-  font-weight: 800;
-  font-size: 28px;
-}
-
-/* Contenedor centrado con acolchado SIMÉTRICO */
-.calendar-container {
-  height: 100%;
-  width: 100%;
-  max-width: 1680px;         /* límite razonable */
-  margin: 0 auto;            /* centra horizontal */
-  padding-left: 24px;        /* 👈 acolchado simétrico ajustado */
-  padding-right: 24px;
-  display: grid;
-  place-items: center;
-}
-
-.calendar-actions {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 6px;
-}
-
-/* ===========================
-   React-Calendar grande
-   =========================== */
-.my-calendar {
-  width: 100%;
-  height: 100%;
-  font-size: 16px;
-  --header: 140px;           /* nav + weekdays aprox. */
-  /* el gap lo controlaremos con column-gap/row-gap del grid más abajo */
-}
-
-/* navegación/semana compactas para ganar alto útil */
-.my-calendar .react-calendar__navigation { margin-bottom: .5rem; }
-.my-calendar .react-calendar__month-view__weekdays {
-  margin-bottom: .25rem;
   font-weight: 700;
   letter-spacing: .02em;
 }
 
-/* ===========================
-   Días del mes en GRID (7 columnas fijas)
-   =========================== */
-.my-calendar .react-calendar__month-view__days {
-  height: calc(100% - var(--header));   /* alto útil para las 6 filas */
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));  /* ← 7 columnas blindadas */
-  grid-auto-rows: 1fr;
-  column-gap: 12px;   /* antes 16px; se redujo para que entren 7 con holgura */
-  row-gap: 16px;
-  margin: 0;
+/* Evita que un tile “empuje” a la siguiente columna (clave para que aparezca DOM) */
+.react-calendar__month-view__days > * {
+  min-width: 0;
 }
 
-/* ===========================
-   Celdas tipo bloque (todas iguales)
-   =========================== */
-/* clamp: min 120px, ideal = cálculo exacto, max 220px para evitar desborde */
-.my-calendar .react-calendar__tile {
-  position: relative;
-  min-width: 0;               /* 🔑 evita que el contenido ensanche la columna */
-  height: clamp(
-    120px,
-    calc((100% - (16px * 5)) / 6), /* 5 gaps verticales de 16px */
-    220px
-  );
-  border-radius: 0;           /* lo maneja el panel interno */
-  padding: 0;                 /* el padding va en el panel interno */
-  background: transparent;
-  overflow: hidden;
-}
-
-/* Panel interno que ocupa TODO el bloque (mismo tamaño con/sin eventos) */
-.my-calendar .tile-panel {
-  min-width: 0;               /* 🔑 complementa el min-width del tile */
-  height: 100%;
-  width: 100%;
-  border-radius: 14px;
-  padding: 8px;               /* un poco menos para ganar aire horizontal */
+/* --- Estilo base de cada día (los “bloques”) --- */
+.react-calendar__tile {
+  box-sizing: border-box;
+  border-radius: 12px;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 2px solid #d4dde6;  /* borde más grueso */
+  padding: 8px 10px;          /* compacto */
+  min-height: 74px;           /* altura del día */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  transition: background .15s ease, border-color .15s ease;
+  gap: 6px;                   /* espacio interno */
+  color: #0f2235;
 }
 
-/* Número del día arriba-izquierda */
-.my-calendar .react-calendar__tile abbr {
-  position: absolute;
-  top: 8px;
-  left: 10px;
-  font-size: 14px;
-  font-weight: 800;
-  text-decoration: none;
-  color: #0f172a; /* slate-900 */
+/* Número del día */
+.react-calendar__tile abbr {
+  display: inline-block;
+  font-weight: 700;
+  color: #0f2235;
 }
 
-/* Vecinos / hoy / hover */
-.my-calendar .react-calendar__month-view__days__day--neighboringMonth abbr { opacity: .35; }
-.my-calendar .react-calendar__tile:hover .tile-panel { background: #f6f8fa; }
-
-/* Día de HOY (aplicado con tileClassName="is-today") */
-.my-calendar .is-today .tile-panel {
-  background: rgba(25,118,210,.08);
-  border-color: rgba(25,118,210,.25);
+/* Hover sutil SOLO para días del mes actual */
+.react-calendar .react-calendar__month-view__days__day
+  :not(.react-calendar__month-view__days__day--neighboringMonth):enabled:hover {
+  background: #f6f8fb;             /* sutil gris azulado */
+  border-color: #dbe3ee;
 }
 
-/* ===========================
-   Eventos dentro del bloque
-   =========================== */
-.my-calendar .tile-events {
-  margin-top: 26px;                          /* despega del número */
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: calc(
-    clamp(120px, calc((100% - (16px * 5)) / 6), 220px) - 34px
-  );
-  overflow: hidden;
+/* --- DÍAS VECINOS (fuera del mes) con contraste alto --- */
+.react-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  background: #f2f4f7 !important;
+  border-color: #e1e7ee !important;
+  color: #7a8896 !important;
 }
 
-.my-calendar .event-pill {
-  font-size: 12px;
-  line-height: 1.15;
+/* Mantener estilo consistente en hover/focus/click para vecinos */
+.react-calendar .react-calendar__month-view__days__day--neighboringMonth:enabled:hover,
+.react-calendar .react-calendar__month-view__days__day--neighboringMonth:enabled:focus,
+.react-calendar .react-calendar__month-view__days__day--neighboringMonth:enabled:active {
+  background: #f2f4f7 !important;
+  border-color: #e1e7ee !important;
+  color: #7a8896 !important;
+  box-shadow: none !important;
+}
+
+/* Si usas <abbr> para el número, atenúa también el texto en vecinos */
+.react-calendar .react-calendar__month-view__days__day--neighboringMonth abbr {
+  color: #7a8896 !important;
+}
+
+/* --- HOY: siempre azul y sin cambiar por hover/click/active --- */
+.react-calendar .react-calendar__tile--now,
+.react-calendar .react-calendar__tile--now:enabled:hover,
+.react-calendar .react-calendar__tile--now:enabled:focus,
+.react-calendar .react-calendar__tile--now:enabled:active,
+.react-calendar .react-calendar__tile--now.react-calendar__tile--active,
+.react-calendar .react-calendar__tile--now.react-calendar__tile--active:enabled:hover,
+.react-calendar .react-calendar__tile--now.react-calendar__tile--active:enabled:focus,
+.react-calendar .react-calendar__tile--now.react-calendar__tile--active:enabled:active {
+  background: #1a73e8 !important;
+  border-color: #1a73e8 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* --- Desactivar selección (active) en cualquier día que NO sea hoy --- */
+.react-calendar__tile--active:not(.react-calendar__tile--now),
+.react-calendar__tile--active:not(.react-calendar__tile--now):enabled:hover,
+.react-calendar__tile--active:not(.react-calendar__tile--now):enabled:focus,
+.react-calendar__tile--active:not(.react-calendar__tile--now):enabled:active {
+  background: transparent !important;
+  border-color: inherit !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+
+/* --- “Pills”/tarjetitas de evento dentro del día (si las usas) --- */
+.cal-event {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
   padding: 6px 8px;
-  border-radius: 8px;
-  background: #f1f3f5;
-  color: #222;
-  max-width: 100%;             /* 🔑 no ensancha el panel */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.1;
+  background: #eef6ff;
+  border: 1px solid #dbe9ff;
+  text-align: center;
 }
-.my-calendar .event-pill.work     { background: #e7f1ff; color: #0b5ed7; }
-.my-calendar .event-pill.personal { background: #eaf7ee; color: #198754; }
-.my-calendar .event-pill.reminder { background: #fff3cd; color: #8a6d3b; }
+.cal-event--success { background: #e8f6ec; border-color: #ccebd6; }
+.cal-event--warning { background: #fff7e8; border-color: #ffe6b3; }
 
-.my-calendar .event-more {
-  font-size: 11px;
-  color: #6b7280;
-}
-
-/* ===========================
-   Responsivo fino
-   =========================== */
+/* --- Responsivo --- */
 @media (max-width: 1200px) {
-  .my-calendar { --header: 130px; font-size: 15px; }
+  .react-calendar__month-view__weekdays,
+  .react-calendar__month-view__days {
+    gap: 8px;
+  }
+  .react-calendar__tile {
+    padding: 6px 8px;
+    min-height: 66px;
+  }
+}
+@media (max-width: 900px) {
+  .react-calendar__tile {
+    padding: 6px 6px;
+    min-height: 60px;
+  }
+  .cal-event { font-size: 0.82rem; }
 }
 
-@media (max-width: 768px) {
-  .my-calendar { --header: 125px; font-size: 14px; }
-  .calendar-container { padding-left: 20px; padding-right: 20px; }
+/* --- Layout página: título centrado + botones siempre centrados abajo --- */
+.calendar-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
-
-@media (max-width: 576px) {
-  .my-calendar { --header: 120px; font-size: 13px; }
-  .calendar-container { padding-left: 16px; padding-right: 16px; }
+.calendar-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0 4px;
+}
+.calendar-header h2 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-align: center;
+}
+.calendar-main {
+  flex: 1;                /* el footer queda abajo */
+  display: flex;
+  flex-direction: column;
+}
+.calendar-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 12px;
+  position: sticky;       /* visible abajo incluso con poco contenido */
+  bottom: 0;
+  background: transparent;/* usa #fff si quieres franja sólida */
 }

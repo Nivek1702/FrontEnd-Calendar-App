@@ -65,8 +65,6 @@ export default function Dashboard() {
       <TopBar />
 
       <div className="calendar-viewport">
-        <div className="calendar-header">Calendario</div>
-
         <div className="calendar-container">
           <Calendar
             value={value}
@@ -84,15 +82,14 @@ export default function Dashboard() {
             }}
           />
         </div>
-
-        <div className="calendar-actions">
+      </div>
+      <div className="calendar-actions">
           <ButtonGroup>
             <Button variant="dark">Importar horario</Button>
             <Button variant="primary">Ingresar horario</Button>
             <Button variant="success">Generar horario</Button>
           </ButtonGroup>
         </div>
-      </div>
     </div>
   );
 }
