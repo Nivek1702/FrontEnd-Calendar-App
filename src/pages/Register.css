@@ -1,0 +1,97 @@
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #ffffff;
+  font-family: "Poppins", sans-serif;
+}
+
+.register-box {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  position: relative;
+}
+
+/* Logo circular */
+.chatbot-logo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 3px solid #5e6cff;
+  background-color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  animation: bounce 2.5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -10px);
+  }
+}
+
+.register-box h2 {
+  margin-top: 70px;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.register-box input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.register-box button {
+  width: 100%;
+  padding: 10px;
+  background-color: #5e6cff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.register-box button:hover {
+  background-color: #4c59e6;
+}
+
+.register-message {
+  color: #333;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.register-box p {
+  font-size: 14px;
+  color: #333;
+  margin-top: 1rem;
+}
+
+.register-box a {
+  color: #5e6cff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-box a:hover {
+  text-decoration: underline;
+}

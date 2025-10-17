@@ -7,6 +7,7 @@ import "react-calendar/dist/Calendar.css";
 import { Button, ButtonGroup } from "react-bootstrap";
 import { api } from "../api";
 import "../index.css";
+import chatbotLogo from "../Imagenes/chatbot.png";
 
 type CalValue = CalendarProps["value"];
 type EventItem = { id: string; title: string; type?: "work" | "personal" | "reminder" };
@@ -60,10 +61,20 @@ export default function Dashboard() {
   // Para resaltar el día de hoy
   const todayStr = new Date().toDateString();
 
-  return (
+return (
     <div className="calendar-page">
-      <TopBar />
+      {/* --- HEADER --- */}
+      <header className="dashboard-header">
+        <div className="logo-section">
+          <img src={chatbotLogo} alt="Chatbot Logo" className="chatbot-logo-header" />
+          <h1>PlanifyMe</h1>
+        </div>
+        <div className="profile-section">
+          <span>Perfil ▼</span>
+        </div>
+      </header>
 
+      {/* --- CALENDARIO --- */}
       <div className="calendar-viewport">
         <div className="calendar-container">
           <Calendar
@@ -83,13 +94,15 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {/* --- BOTONES --- */}
       <div className="calendar-actions">
-          <ButtonGroup>
-            <Button variant="dark">Importar horario</Button>
-            <Button variant="primary">Ingresar horario</Button>
-            <Button variant="success">Generar horario</Button>
-          </ButtonGroup>
-        </div>
+        <ButtonGroup className="dashboard-buttons">
+          <Button variant="dark" className="custom-btn import">Importar horario</Button>
+          <Button variant="primary" className="custom-btn ingresar">Ingresar horario</Button>
+          <Button variant="success" className="custom-btn generar">Generar horario</Button>
+        </ButtonGroup>
+      </div>
     </div>
   );
 }
