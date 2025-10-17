@@ -16,7 +16,7 @@
 .DS_Store
 Thumbs.db
 desktop.ini
-
+#
 # Archivos de configuración de IDE
 .vscode/
 .idea/
