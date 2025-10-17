@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Color Generator</title>
+  <style>
+    body {
+      transition: background-color 0.5s ease;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      text-align: center;
+      margin-top: 100px;
+    }
+
+    button {
+      background-color: #fff;
+      color: #333;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #ddd;
+    }
+
+    #colorCode {
+      margin-top: 20px;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 Generador de Color Aleatorio</h1>
+  <button id="btnChangeColor">Cambiar Color</button>
+  <div id="colorCode">#ffffff</div>
+
+  <script>
+    const btn = document.getElementById('btnChangeColor');
+    const colorCode = document.getElementById('colorCode');
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    btn.addEventListener('click', () => {
+      const newColor = getRandomColor();
+      document.body.style.backgroundColor = newColor;
+      colorCode.textContent = newColor;
+    });
+  </script>
+</body>
+</html>
