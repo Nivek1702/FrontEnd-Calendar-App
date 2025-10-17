@@ -1,0 +1,300 @@
+// hex-arch-example.ts
+// 1) Domain layer: entities, value objects, domain errors, events
+type UUID = string;
+
+export class Money {
+  private constructor(public readonly cents: number, public readonly currency: string) {
+    if (cents < 0) throw new Error("Money cannot be negative");
+    if (!currency) throw new Error("Currency required");
+  }
+  static of(amount: number, currency = "USD"): Money {
+    const cents = Math.round(amount * 100);
+    return new Money(cents, currency);
+  }
+  add(other: Money): Money {
+    if (this.currency !== other.currency) throw new Error("Currency mismatch");
+    return new Money(this.cents + other.cents, this.currency);
+  }
+  multiply(qty: number): Money {
+    return new Money(Math.round(this.cents * qty), this.currency);
+  }
+  toNumber(): number { return this.cents / 100; }
+  toString(): string { return `${this.currency} ${this.toNumber().toFixed(2)}`; }
+}
+
+export class Product {
+  constructor(
+    public readonly id: UUID,
+    public readonly name: string,
+    public readonly price: Money
+  ) {
+    if (!name.trim()) throw new Error("Product name required");
+  }
+}
+
+export class OrderLine {
+  constructor(public readonly product: Product, public readonly quantity: number) {
+    if (quantity <= 0) throw new Error("Quantity must be > 0");
+  }
+  lineTotal(): Money { return this.product.price.multiply(this.quantity); }
+}
+
+export enum OrderStatus { Pending = "PENDING", Paid = "PAID", Cancelled = "CANCELLED" }
+
+export class Order {
+  private _status: OrderStatus = OrderStatus.Pending;
+  private _createdAt = new Date();
+  private _paidAt: Date | null = null;
+  constructor(public readonly id: UUID, public readonly customerEmail: string, public readonly lines: OrderLine[]) {
+    if (!customerEmail.includes("@")) throw new Error("Customer email invalid");
+    if (lines.length === 0) throw new Error("Order requires at least one line");
+  }
+  status(): OrderStatus { return this._status; }
+  total(): Money { return this.lines.map(l => l.lineTotal()).reduce((a,b)=>a.add(b)); }
+  markPaid(at = new Date()) { this._status = OrderStatus.Paid; this._paidAt = at; }
+  cancel() { if (this._status === OrderStatus.Paid) throw new Error("Cannot cancel paid order"); this._status = OrderStatus.Cancelled; }
+  createdAt(): Date { return this._createdAt; }
+  paidAt(): Date | null { return this._paidAt; }
+}
+
+// 2) Ports (input/output interfaces)
+export interface ClockPort { now(): Date; }
+export interface IdGeneratorPort { newId(): UUID; }
+export interface OrderRepositoryPort {
+  save(order: Order): Promise<void>;
+  getById(id: UUID): Promise<Order | null>;
+  listByEmail(email: string): Promise<Order[]>;
+}
+export interface PaymentProcessorPort {
+  charge(email: string, amount: Money, orderId: UUID): Promise<{ ok: boolean; authCode?: string; error?: string }>;
+}
+export interface DomainEventPublisherPort {
+  publish(event: { type: string; payload: any }): Promise<void>;
+}
+
+// 3) Application layer: use cases (pure business)
+export class PlaceOrderCommand {
+  constructor(
+    public readonly customerEmail: string,
+    public readonly lines: Array<{ productId: UUID; name: string; price: number; currency?: string; qty: number }>
+  ) {}
+}
+
+export class PlaceOrderResult {
+  constructor(public readonly orderId: UUID, public readonly total: Money, public readonly status: OrderStatus) {}
+}
+
+export class PayOrderCommand { constructor(public readonly orderId: UUID) {} }
+
+export class PlaceOrderService {
+  constructor(
+    private readonly idGen: IdGeneratorPort,
+    private readonly clock: ClockPort,
+    private readonly repo: OrderRepositoryPort,
+    private readonly events: DomainEventPublisherPort
+  ) {}
+  async execute(cmd: PlaceOrderCommand): Promise<PlaceOrderResult> {
+    const orderId = this.idGen.newId();
+    const lines = cmd.lines.map(l => new OrderLine(
+      new Product(l.productId, l.name, Money.of(l.price, l.currency ?? "USD")),
+      l.qty
+    ));
+    const order = new Order(orderId, cmd.customerEmail, lines);
+    await this.repo.save(order);
+    await this.events.publish({ type: "OrderPlaced", payload: { id: order.id, at: this.clock.now() } });
+    return new PlaceOrderResult(order.id, order.total(), order.status());
+  }
+}
+
+export class PayOrderService {
+  constructor(
+    private readonly repo: OrderRepositoryPort,
+    private readonly payments: PaymentProcessorPort,
+    private readonly events: DomainEventPublisherPort,
+    private readonly clock: ClockPort
+  ) {}
+  async execute(cmd: PayOrderCommand): Promise<{ ok: boolean; message: string }> {
+    const order = await this.repo.getById(cmd.orderId);
+    if (!order) return { ok: false, message: "Order not found" };
+    if (order.status() !== OrderStatus.Pending) return { ok: false, message: "Order not payable" };
+    const res = await this.payments.charge(order.customerEmail, order.total(), order.id);
+    if (!res.ok) return { ok: false, message: res.error ?? "Payment failed" };
+    order.markPaid(this.clock.now());
+    await this.repo.save(order);
+    await this.events.publish({ type: "OrderPaid", payload: { id: order.id, authCode: res.authCode } });
+    return { ok: true, message: "Order paid" };
+  }
+}
+
+// 4) Adapters (driven + driver): infrastructure implementations
+export class SystemClockAdapter implements ClockPort { now(): Date { return new Date(); } }
+export class UuidAdapter implements IdGeneratorPort {
+  newId(): UUID { return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0, v = c === "x" ? r : (r & 0x3) | 0x8; return v.toString(16);
+  }); }
+}
+
+export class InMemoryOrderRepositoryAdapter implements OrderRepositoryPort {
+  private store = new Map<UUID, Order>();
+  async save(order: Order): Promise<void> { this.store.set(order.id, order); }
+  async getById(id: UUID): Promise<Order | null> { return this.store.get(id) ?? null; }
+  async listByEmail(email: string): Promise<Order[]> {
+    return Array.from(this.store.values()).filter(o => o["customerEmail"] === email);
+  }
+}
+
+export class ConsoleEventPublisherAdapter implements DomainEventPublisherPort {
+  async publish(event: { type: string; payload: any }): Promise<void> { console.log("[EVENT]", event.type, event.payload); }
+}
+
+export class FakeStripePaymentAdapter implements PaymentProcessorPort {
+  async charge(email: string, amount: Money, orderId: UUID): Promise<{ ok: boolean; authCode?: string; error?: string }> {
+    if (email.endsWith("@fail.test")) return { ok: false, error: "Card declined" };
+    return { ok: true, authCode: "AUTH-" + orderId.slice(0, 8).toUpperCase() };
+  }
+}
+
+// 5) Primary adapters (input): HTTP controller & CLI (simulation)
+type HttpRequest = { body?: any; params?: Record<string,string> };
+type HttpResponse = { status: number; body: any };
+
+export class OrdersHttpController {
+  constructor(private place: PlaceOrderService, private pay: PayOrderService, private repo: OrderRepositoryPort) {}
+  // POST /orders
+  async create(req: HttpRequest): Promise<HttpResponse> {
+    try {
+      const cmd = new PlaceOrderCommand(req.body.email, req.body.lines);
+      const res = await this.place.execute(cmd);
+      return { status: 201, body: { orderId: res.orderId, total: res.total.toString(), status: res.status } };
+    } catch (e: any) {
+      return { status: 400, body: { error: e.message } };
+    }
+  }
+  // POST /orders/:id/pay
+  async payOrder(req: HttpRequest): Promise<HttpResponse> {
+    const cmd = new PayOrderCommand(req.params!.id);
+    const res = await this.pay.execute(cmd);
+    return { status: res.ok ? 200 : 422, body: res };
+  }
+  // GET /orders/:id
+  async get(req: HttpRequest): Promise<HttpResponse> {
+    const order = await this.repo.getById(req.params!.id);
+    if (!order) return { status: 404, body: { error: "Not found" } };
+    return {
+      status: 200,
+      body: {
+        id: order.id,
+        email: order["customerEmail"],
+        status: order.status(),
+        total: order.total().toString(),
+        createdAt: order.createdAt().toISOString(),
+        paidAt: order.paidAt() ? order.paidAt()!.toISOString() : null
+      }
+    };
+  }
+}
+
+// 6) Composition root (the "app" wiring the hexagon)
+export class App {
+  readonly clock = new SystemClockAdapter();
+  readonly ids = new UuidAdapter();
+  readonly repo = new InMemoryOrderRepositoryAdapter();
+  readonly events = new ConsoleEventPublisherAdapter();
+  readonly payments = new FakeStripePaymentAdapter();
+  readonly place = new PlaceOrderService(this.ids, this.clock, this.repo, this.events);
+  readonly pay = new PayOrderService(this.repo, this.payments, this.events, this.clock);
+  readonly http = new OrdersHttpController(this.place, this.pay, this.repo);
+}
+
+// 7) Demo / tests (show how ports/adapters let us switch tech details)
+async function demo() {
+  const app = new App();
+  // Create an order
+  const createRes = await app.http.create({
+    body: {
+      email: "user@example.com",
+      lines: [
+        { productId: "p-1", name: "Book", price: 19.99, qty: 2 },
+        { productId: "p-2", name: "Pen", price: 2.5, qty: 3 }
+      ]
+    }
+  });
+  console.log("[HTTP]", createRes.status, createRes.body);
+  const id = createRes.body.orderId as UUID;
+
+  // Query the order
+  const get1 = await app.http.get({ params: { id } });
+  console.log("[HTTP]", get1.status, get1.body);
+
+  // Try paying
+  const payRes = await app.http.payOrder({ params: { id } });
+  console.log("[HTTP]", payRes.status, payRes.body);
+
+  // Query after pay
+  const get2 = await app.http.get({ params: { id } });
+  console.log("[HTTP]", get2.status, get2.body);
+
+  // Create a failing payment order
+  const fail = await app.http.create({
+    body: {
+      email: "oops@fail.test",
+      lines: [{ productId: "p-3", name: "Gadget", price: 50, qty: 1 }]
+    }
+  });
+  const id2 = fail.body.orderId as UUID;
+  const payFail = await app.http.payOrder({ params: { id: id2 } });
+  console.log("[HTTP]", payFail.status, payFail.body);
+}
+
+// 8) Simple in-memory "router" to simulate framework-less HTTP calls
+type Route = { method: "GET"|"POST"; path: RegExp; handler: (req: HttpRequest) => Promise<HttpResponse> };
+
+export class MiniHttpServer {
+  private routes: Route[] = [];
+  register(method: "GET"|"POST", path: string, handler: (req: HttpRequest)=>Promise<HttpResponse>) {
+    // convert /orders/:id to regex
+    const rx = new RegExp("^" + path.replace(/:\\w+/g, "([^/]+)") + "$");
+    this.routes.push({ method, path: rx, handler });
+  }
+  async handle(method: "GET"|"POST", path: string, body?: any): Promise<HttpResponse> {
+    for (const r of this.routes) {
+      if (r.method !== method) continue;
+      const match = path.match(r.path);
+      if (!match) continue;
+      const params: Record<string,string> = {};
+      const names = (path.match(/:(\w+)/g) || []).map(s => s.slice(1));
+      names.forEach((n,i)=> params[n] = match[i+1]);
+      return r.handler({ body, params });
+    }
+    return { status: 404, body: { error: "Route not found" } };
+  }
+}
+
+// 9) Bootstrap server with our hexagon
+export async function main() {
+  const app = new App();
+  const server = new MiniHttpServer();
+  server.register("POST", "/orders", (req) => app.http.create(req));
+  server.register("POST", "/orders/:id/pay", (req) => app.http.payOrder(req));
+  server.register("GET", "/orders/:id", (req) => app.http.get(req));
+
+  // Fake traffic:
+  const r1 = await server.handle("POST", "/orders", {
+    email: "client@shop.com",
+    lines: [{ productId: "sku1", name: "Keyboard", price: 30, qty: 1 }]
+  });
+  console.log("[S]", r1.status, r1.body);
+  const id = r1.body.orderId;
+
+  const r2 = await server.handle("POST", `/orders/${id}/pay`);
+  console.log("[S]", r2.status, r2.body);
+
+  const r3 = await server.handle("GET", `/orders/${id}`);
+  console.log("[S]", r3.status, r3.body);
+}
+
+// Run demo only if executed directly (not imported)
+if (require.main === module) {
+  demo().then(()=>main());
+}
+// End of 300-line hexagonal architecture example
