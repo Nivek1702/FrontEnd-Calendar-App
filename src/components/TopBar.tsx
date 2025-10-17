@@ -1,12 +1,13 @@
 import { Navbar, Container, Nav, NavDropdown } from 'react-bootstrap';
+import chatbotLogo from "../Imagenes/chatbot.png";
+import "../index.css"
 
 export default function TopBar() {
   return (
     <Navbar bg="white" expand="lg" className="shadow-sm">
       <Container>
         <Navbar.Brand href="#">
-          <img src="/vite.svg" alt="logo" height={24} className="me-2" />
-          Mi App
+          <img src={chatbotLogo} alt="Chatbot Logo" className="chatbot-logo-header" />
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="nav" />
         <Navbar.Collapse id="nav">
