@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import { api } from "../api";
 import AddScheduleModal from "../components/EventoModal";
@@ -6,13 +6,13 @@ import { formatRangeLabel } from "../utils/datetime";
 import { calendarIdFromDate } from "../utils/calendar_id";
 import "../index.css";
 import TopBar from "../components/TopBar";
+import UserProfileModal from "./user-profile"; // 👈 importante
 
 type DayEvent = { title: string; start: string; end: string };
 
-// Fechas del mes visible (1..último día del mes)
 function datesOfMonth(viewDate: Date): Date[] {
   const y = viewDate.getFullYear();
-  const m = viewDate.getMonth(); // 0..11
+  const m = viewDate.getMonth();
   const first = new Date(y, m, 1);
   const last = new Date(y, m + 1, 0);
 
@@ -28,8 +28,8 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [eventsMap, setEventsMap] = useState<Map<string, DayEvent[]>>(new Map());
   const [showModal, setShowModal] = useState(false);
+  const [showProfile, setShowProfile] = useState(false); // 👈 nuevo estado
 
-  // clave simple para detectar cambio de mes
   const monthKey = `${value.getFullYear()}-${value.getMonth() + 1}`;
 
   async function loadMonthData(viewDate: Date) {
@@ -40,7 +40,7 @@ export default function Dashboard() {
         const { data } = await api.get(`/calendars/get_calendar_events_times/${cid}`);
         return { date: d, data };
       } catch (e: any) {
-        if (e?.response?.status === 404) return { date: d, data: null }; // sin eventos ese día
+        if (e?.response?.status === 404) return { date: d, data: null };
         throw e;
       }
     });
@@ -78,7 +78,6 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthKey]);
 
-  // tileContent: render de “pills” dentro del día
   const tileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view !== "month") return null;
     const key = date.toISOString().slice(0, 10);
@@ -86,7 +85,10 @@ export default function Dashboard() {
     if (items.length === 0) return null;
 
     return (
-      <div className="mt-1" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div
+        className="mt-1"
+        style={{ display: "flex", flexDirection: "column", gap: 6 }}
+      >
         {items.slice(0, 3).map((e, i) => (
           <div key={i} className="cal-event">
             <div style={{ fontWeight: 600 }}>{e.title}</div>
@@ -96,7 +98,13 @@ export default function Dashboard() {
           </div>
         ))}
         {items.length > 3 && (
-          <div style={{ fontSize: "0.78rem", opacity: 0.7, textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: "0.78rem",
+              opacity: 0.7,
+              textAlign: "center",
+            }}
+          >
             +{items.length - 3} más
           </div>
         )}
@@ -106,7 +114,9 @@ export default function Dashboard() {
 
   return (
     <div className="calendar-page">
-      <TopBar></TopBar>
+      {/* ✅ pasamos la función al TopBar */}
+      <TopBar onProfileClick={() => setShowProfile(true)} />
+
       <header className="calendar-header">
         <h2>Calendario Planifyme</h2>
       </header>
@@ -117,8 +127,8 @@ export default function Dashboard() {
           onChange={(v) => setValue(v as Date)}
           tileContent={tileContent}
           onClickDay={(date) => {
-            setSelectedDate(date); // guarda el día clicado
-            setShowModal(true);    // abre modal anclado a ese día
+            setSelectedDate(date);
+            setShowModal(true);
           }}
         />
       </main>
@@ -128,13 +138,16 @@ export default function Dashboard() {
         <button
           className="btn btn-primary"
           onClick={() => {
-            setSelectedDate(value); // usa el día “seleccionado” en el calendario
+            setSelectedDate(value);
             setShowModal(true);
           }}
         >
           Ingresar horario
         </button>
-        <button className="btn btn-success" onClick={() => loadMonthData(value)}>
+        <button
+          className="btn btn-success"
+          onClick={() => loadMonthData(value)}
+        >
           Generar horario
         </button>
       </footer>
@@ -145,6 +158,10 @@ export default function Dashboard() {
         onCreated={() => loadMonthData(value)}
         initialDate={selectedDate ?? new Date()}
       />
+
+      {/* 👇 Modal de detalle de usuario */}
+      <UserProfileModal open={showProfile} onClose={() => setShowProfile(false)} />
     </div>
   );
 }
+

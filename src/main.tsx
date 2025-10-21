@@ -5,6 +5,8 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LoginF from "./pages/LoginF";  
 import Register from "./pages/Register";
+import ForgotPassword from './pages/forgot-password';
+import ResetPassword from './pages/reset-password';
 
 // 👉 carga perezosa
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -18,6 +20,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/" element={<LoginF />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} /> 
         </Routes>
       </Suspense>
     </BrowserRouter>

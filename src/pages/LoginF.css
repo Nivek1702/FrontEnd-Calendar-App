@@ -95,3 +95,17 @@
 .login-box a:hover {
   text-decoration: underline;
 }
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: #2d6cdf;
+  cursor: pointer;
+  margin-top: 10px;
+  text-decoration: none;   /* sin línea */
+  font-size: 0.9rem;
+}
+.forgot-password-btn:hover {
+  color: #1a4dbb;
+  text-decoration: none;   /* asegura que no se subraye */
+}

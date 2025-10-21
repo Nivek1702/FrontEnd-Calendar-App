@@ -19,11 +19,7 @@ export default function LoginF() {
     setLoading(true);
 
     try {
-      const { data } = await api.post("/users/login_user", {
-        username,
-        password,
-      });
-
+      const { data } = await api.post("/users/login_user", { username, password });
       if (data === true) {
         navigate("/dashboard");
       } else {
@@ -35,6 +31,11 @@ export default function LoginF() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 👉 Navega al flujo de recuperación
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
   };
 
   return (
@@ -58,11 +59,22 @@ export default function LoginF() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
           {error && <p className="login-error">{error}</p>}
+
           <button type="submit" disabled={loading}>
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        {/* 🔹 Botón Olvidé mi contraseña */}
+        <button
+          type="button"
+          className="forgot-password-btn"
+          onClick={handleForgotPassword}
+        >
+          ¿Olvidaste tu contraseña?
+        </button>
 
         <p>
           ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
