@@ -7,6 +7,7 @@ import { calendarIdFromDate } from "../utils/calendar_id";
 import "../index.css";
 import TopBar from "../components/TopBar";
 import UserProfileModal from "./user-profile"; // 👈 importante
+import { useNavigate } from "react-router-dom";
 
 type DayEvent = { title: string; start: string; end: string };
 
@@ -24,11 +25,21 @@ function datesOfMonth(viewDate: Date): Date[] {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate(); // 👈 inicializa navigate
   const [value, setValue] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [eventsMap, setEventsMap] = useState<Map<string, DayEvent[]>>(new Map());
   const [showModal, setShowModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false); // 👈 nuevo estado
+
+  // ✅ Verifica si hay sesión activa
+  useEffect(() => {
+    const userId = localStorage.getItem("user_id");
+    console.log("🧠 ID del usuario en sesión:", userId); // 👈 Aquí se imprime el valor guardado
+    if (!userId) {
+      navigate("/"); // si no hay sesión, redirige al login
+    }
+  }, [navigate]);
 
   const monthKey = `${value.getFullYear()}-${value.getMonth() + 1}`;
 

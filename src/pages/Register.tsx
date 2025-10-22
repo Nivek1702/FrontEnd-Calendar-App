@@ -27,7 +27,7 @@ export default function Register() {
 
         // Redirigir al login después de 2 segundos
         setTimeout(() => {
-          navigate("/"); // redirige a tu LoginF
+          navigate("/verify"); // redirige a tu LoginF
         }, 2000);
       } else {
         const errorData = await response.json();

@@ -19,9 +19,13 @@ export default function LoginF() {
     setLoading(true);
 
     try {
-      const { data } = await api.post("/users/login_user", { username, password });
+      const { data } = await api.post("/users/login_user", {
+        username,
+        password,
+      });
+
       if (data === true) {
-        navigate("/dashboard");
+        navigate("/VerificarUsuarioLogin");
       } else {
         setError("Credenciales inválidas");
       }
