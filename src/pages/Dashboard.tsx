@@ -32,6 +32,13 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false); // 👈 nuevo estado
 
+  const handleLogout = () => {
+    // 1. Limpia todo el almacenamiento local
+    localStorage.clear();
+    // 2. Redirige al usuario al Login (en tu caso, la ruta "/")
+    navigate("/");
+  };
+  
   // ✅ Verifica si hay sesión activa
   useEffect(() => {
     const userId = localStorage.getItem("user_id");
@@ -126,7 +133,10 @@ export default function Dashboard() {
   return (
     <div className="calendar-page">
       {/* ✅ pasamos la función al TopBar */}
-      <TopBar onProfileClick={() => setShowProfile(true)} />
+      <TopBar 
+        onProfileClick={() => setShowProfile(true)} 
+        onLogoutClick={handleLogout}
+      />
 
       <header className="calendar-header">
         <h2>Calendario Planifyme</h2>

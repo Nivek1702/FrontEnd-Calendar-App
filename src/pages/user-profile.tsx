@@ -7,6 +7,7 @@ export type User = {
   name: string;
   username?: string;
   email: string;
+  is_verified: boolean;
 };
 
 type Props = {
@@ -26,7 +27,8 @@ export default function UserProfileModal({ open, onClose }: Props) {
       setErr(null);
       try {
         // 👉 ajusta si tu API usa otra ruta
-        const { data } = await api.get("/users/me");
+        const userId = localStorage.getItem('user_id');
+        const { data } = await api.get(`/users/get_user/${userId}`);
         setUser(data);
       } catch (e: any) {
         console.error(e);
@@ -53,10 +55,11 @@ export default function UserProfileModal({ open, onClose }: Props) {
         {user && !loading && !err && (
           <div className="upm-body">
             <dl>
-              <dt>ID</dt><dd>{user.id}</dd>
+              {/* <dt>ID</dt><dd>{user.id}</dd> */}
               <dt>Nombre</dt><dd>{user.name}</dd>
               {user.username && (<><dt>Usuario</dt><dd>{user.username}</dd></>)}
               <dt>Email</dt><dd>{user.email}</dd>
+              <dt>Verificado</dt><dd>{user.is_verified ? "Sí" : "No"}</dd>
             </dl>
           </div>
         )}

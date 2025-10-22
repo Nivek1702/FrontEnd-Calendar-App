@@ -5,9 +5,10 @@ import "../index.css";
 
 type TopBarProps = {
   onProfileClick?: () => void; // 👈 nueva prop opcional
+  onLogoutClick?: () => void;
 };
 
-export default function TopBar({ onProfileClick }: TopBarProps) {
+export default function TopBar({ onProfileClick, onLogoutClick }: TopBarProps) {
   return (
     <Navbar bg="white" expand="lg" className="shadow-sm">
       <Container>
@@ -29,10 +30,11 @@ export default function TopBar({ onProfileClick }: TopBarProps) {
               <NavDropdown.Item onClick={onProfileClick}>
                 Ver perfil
               </NavDropdown.Item>
-
+              
               <NavDropdown.Item>Configuración</NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item>Ayuda</NavDropdown.Item>
+              <NavDropdown.Item onClick={onLogoutClick}>Cerrar sesión</NavDropdown.Item>
             </NavDropdown>
           </Nav>
         </Navbar.Collapse>
