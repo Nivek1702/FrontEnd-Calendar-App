@@ -25,7 +25,7 @@ export default function LoginF() {
       });
 
       if (data === true) {
-        navigate("/dashboard");
+        navigate("/VerificarUsuarioLogin");
       } else {
         setError("Credenciales inválidas");
       }

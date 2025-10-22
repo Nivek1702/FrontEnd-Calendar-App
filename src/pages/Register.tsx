@@ -25,9 +25,9 @@ export default function Register() {
         setMessage("Usuario creado correctamente ✅");
         console.log("Usuario creado:", data);
 
-        // Redirigir al login después de 2 segundos
+        // Redirigir a verificación después de 2 segundos
         setTimeout(() => {
-          navigate("/"); // redirige a tu LoginF
+          navigate("/verify"); // 👈 Redirige a la verificación
         }, 2000);
       } else {
         const errorData = await response.json();
