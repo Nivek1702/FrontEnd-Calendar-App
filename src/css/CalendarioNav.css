@@ -1,0 +1,72 @@
+/* === Barra de navegación de meses (react-calendar) === */
+
+.react-calendar__navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+
+  margin-bottom: 0.75rem;
+  padding: 4px 8px;
+
+  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid #d4dde6;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* Estilo base de todos los botones de la barra */
+.react-calendar__navigation button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #111827;
+
+  transition: background-color 0.15s ease, color 0.15s ease,
+              box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+/* Hover/focus general */
+.react-calendar__navigation button:hover {
+  background-color: #f3f4ff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.react-calendar__navigation button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+/* Botones de flecha (<<, <, >, >>) */
+.react-calendar__navigation__arrow {
+  width: 32px;
+  height: 32px;
+  padding: 0; /* ya controlamos tamaño con width/height */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+/* Botón central (mes + año) */
+.react-calendar__navigation__label {
+  min-width: 190px;
+  text-align: center;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+/* Estado disabled (cuando no se puede ir más atrás/adelante) */
+.react-calendar__navigation button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
+  background: transparent;
+}

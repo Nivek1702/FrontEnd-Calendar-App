@@ -115,7 +115,15 @@
   background: #eef6ff;
   border: 1px solid #dbe9ff;
   text-align: center;
+  cursor: pointer;             /* <- importante para que parezca botón */
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
+
+.cal-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15);
+}
+
 .cal-event--success { background: #e8f6ec; border-color: #ccebd6; }
 .cal-event--warning { background: #fff7e8; border-color: #ffe6b3; }
 

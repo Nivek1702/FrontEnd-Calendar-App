@@ -19,12 +19,12 @@ export default function VerificarUsuarioLogin() {
 
     try {
       const { data } = await api.post("/users/login_user_verification", {
-        user_name: userName,
+        email: userName,
         verification_code: verificationCode,
       });
-
+      console.log("👉 Respuesta login_user_verification:", data);
       if (data !== null) {
-        localStorage.setItem("user_id", data.toString());
+        localStorage.setItem("access_token", data.access_token);
         setMessage("✅ Verificación exitosa, redirigiendo...");
         setTimeout(() => {
           navigate("/dashboard");

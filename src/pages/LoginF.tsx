@@ -20,8 +20,8 @@ export default function LoginF() {
 
     try {
       const { data } = await api.post("/users/login_user", {
-        username,
-        password,
+        email:username,
+        password:password,
       });
 
       if (data === true) {

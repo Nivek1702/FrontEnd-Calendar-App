@@ -1,0 +1,44 @@
+/* Fondo oscuro del popup */
+.popup-backdrop {
+  position: fixed;
+  inset: 0;                 /* top:0, right:0, bottom:0, left:0 */
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1040;
+}
+
+/* Caja centrada del popup */
+.popup-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  z-index: 1050;
+}
+
+/* Estructura interna */
+.popup-header,
+.popup-footer {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.popup-footer {
+  border-top: 1px solid #dee2e6;
+  border-bottom: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.popup-body {
+  padding: 0.75rem 1rem;
+}
+
+.popup-title {
+  margin: 0;
+}

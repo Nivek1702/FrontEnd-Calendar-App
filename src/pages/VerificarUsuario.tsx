@@ -20,7 +20,7 @@ export default function VerificarUsuario() {
     try {
       // Llamada al endpoint /users/validate_user
       const { data } = await api.post("/users/validate_user", {
-        user_name: userName,
+        email: userName,
         verification_code: verificationCode,
       });
 

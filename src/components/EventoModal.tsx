@@ -1,272 +1,445 @@
+// src/components/EventoModal.tsx
 import { useEffect, useState } from "react";
-import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import { api } from "../api";
-import { toVO } from "../utils/datetime";
-import { calendarIdFromDate } from "../utils/calendar_id";
 
-type NewTimeSlot = {
-  date: Date;
-  start: string; // "HH:MM"
-  end: string;   // "HH:MM"
-};
+interface UserCalendar {
+  id: number;
+  name: string;
+  description: string;
+  color: string;
+}
 
-type Props = {
+interface EditableEvent {
+  timeId: number;
+  eventId: number;
+  calendarId: number;
+  title: string;
+  description: string;
+  location: string;
+  date: string;      // YYYY-MM-DD
+  startTime: string; // HH:MM
+  endTime: string;   // HH:MM
+}
+
+interface AddScheduleModalProps {
   show: boolean;
   onClose: () => void;
-  onCreated: () => void;     // ← el padre hará el GET después de crear
-  initialDate?: Date;        // fecha del bloque clicado en el calendario
-  calendarId?: number;       // compat
-};
-
-// YYYY-MM-DD para mostrar/usar como name del calendario
-function ymd(d: Date) {
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  onCreated: () => void;
+  initialDate: Date;
+  calendars: UserCalendar[];
+  editingEvent?: EditableEvent | null;
 }
+
+type Block = {
+  date: string;      // YYYY-MM-DD
+  startTime: string; // HH:MM
+  endTime: string;   // HH:MM
+};
 
 export default function AddScheduleModal({
   show,
   onClose,
   onCreated,
   initialDate,
-}: Props) {
+  calendars,
+  editingEvent,
+}: AddScheduleModalProps) {
+  const [calendarId, setCalendarId] = useState<number | "">("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [slots, setSlots] = useState<NewTimeSlot[]>([
-    { date: initialDate ?? new Date(), start: "09:00", end: "10:00" },
-  ]);
-  const [submitting, setSubmitting] = useState(false);
+
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ⚠️ Ajusta con el id real del usuario autenticado si lo tienes
-  const userId = 0;
+  const isEditMode = Boolean(editingEvent);
 
+  // Inicializar campos cuando se abre el modal
   useEffect(() => {
     if (!show) return;
-    setSlots([{ date: initialDate ?? new Date(), start: "09:00", end: "10:00" }]);
-  }, [show, initialDate]);
 
-  const updateSlot = (idx: number, patch: Partial<NewTimeSlot>) => {
-    setSlots((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  };
+    const isoInit = initialDate.toISOString().slice(0, 10);
 
-  const addSlot = () =>
-    setSlots((prev) => [...prev, { date: initialDate ?? new Date(), start: "09:00", end: "10:00" }]);
-
-  const removeSlot = (idx: number) =>
-    setSlots((prev) => prev.filter((_, i) => i !== idx));
-
-  /**
-   * Asegura/crea el Calendar para el día.
-   * - Calcula el id con calendarIdFromDate(day) (estructura acordada).
-   * - Busca por id en GET /calendars/get_all_calendars/{user_id}
-   * - Si no existe, hace POST /calendars/create_calendar enviando ese id.
-   */
-  async function ensureCalendarForDay(day: Date): Promise<{ id: number }> {
-    const calId = calendarIdFromDate(day);      // ← id con tu formato (p.ej. DDMMAAAA o AAAAMMDD)
-    const name = ymd(day);                      // usamos el name como "YYYY-MM-DD" para referencia visual
-
-    // 1) listar los calendars del usuario y buscar por id
-    const listRes = await api.get(`/calendars/get_all_calendars/${userId}`);
-    const calendars = listRes.data as Array<{ id: number; name: string }>;
-    const found = calendars.find((c) => c.id === calId);
-    if (found) return { id: found.id };
-
-    // 2) no existe → crearlo enviando el id explícitamente
-    const createRes = await api.post("/calendars/create_calendar", {
-      id: calId,                           // ← se envía el id acordado
-      name,                                // ← "YYYY-MM-DD"
-      description: "Calendario del día",
-      color: "#1a73e8",
-      user_id: userId,
-    });
-    return { id: createRes.data.id as number };
-  }
-
-  async function handleSubmit() {
-    setError(null);
-
-    if (!title.trim()) {
-      setError("El título es obligatorio.");
-      return;
-    }
-    for (const s of slots) {
-      if (!s.start || !s.end) {
-        setError("Todos los bloques deben tener hora de inicio y fin.");
-        return;
-      }
-      if (s.start >= s.end) {
-        setError("La hora de inicio debe ser menor a la de fin.");
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    try {
-      // 1) Agrupar bloques por fecha (clave YYYY-MM-DD)
-      const grouped = new Map<string, NewTimeSlot[]>();
-      for (const s of slots) {
-        const key = ymd(s.date);
-        const arr = grouped.get(key) || [];
-        arr.push(s);
-        grouped.set(key, arr);
-      }
-
-      // 2) Para cada fecha: asegurar/crear Calendar (enviando id) → crear Event → crear Times
-      for (const [, daySlots] of grouped.entries()) {
-        const day = daySlots[0].date;
-
-        // (2.1) asegurar/crear Calendar del día (envía id = calendarIdFromDate(day))
-        const { id: calendar_id } = await ensureCalendarForDay(day);
-
-        // (2.2) crear Event en ese calendar
-        const eventRes = await api.post("/events/create_event", {
-          title: title.trim(),
-          description: description.trim(),
-          location: location.trim(),
-          calendar_id,
-        });
-        const event = eventRes.data as { id: number };
-
-        // (2.3) crear Times (bloques) del event
-        for (const s of daySlots) {
-          await api.post("/times/create_time", {
-            start_time: toVO(s.date, s.start),
-            end_time: toVO(s.date, s.end),
-            event_id: event.id,
-          });
-        }
-      }
-
-      // 3) Avisar al padre que refresque (GET)
-      onCreated();
-
-      // 4) Limpiar y cerrar
+    if (editingEvent) {
+      // Modo edición
+      setCalendarId(editingEvent.calendarId);
+      setTitle(editingEvent.title);
+      setDescription(editingEvent.description || "");
+      setLocation(editingEvent.location || "");
+      setBlocks([
+        {
+          date: editingEvent.date,
+          startTime: editingEvent.startTime,
+          endTime: editingEvent.endTime,
+        },
+      ]);
+    } else {
+      // Modo creación
+      const defaultCal =
+        calendars.length > 0 ? calendars[0].id : ("" as number | "");
+      setCalendarId(defaultCal);
       setTitle("");
       setDescription("");
       setLocation("");
-      setSlots([{ date: initialDate ?? new Date(), start: "09:00", end: "10:00" }]);
-      onClose();
-    } catch (e: any) {
-      setError(e?.response?.data ?? "No se pudo registrar el horario.");
-    } finally {
-      setSubmitting(false);
+      setBlocks([
+        {
+          date: isoInit,
+          startTime: "09:00",
+          endTime: "10:00",
+        },
+      ]);
     }
-  }
+
+    setError(null);
+  }, [show, editingEvent, initialDate, calendars]);
+
+  const handleChangeBlock = (
+    index: number,
+    field: keyof Block,
+    value: string
+  ) => {
+    setBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, [field]: value } : b))
+    );
+  };
+
+  const handleAddBlock = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    setBlocks((prev) => [
+      ...prev,
+      { date: today, startTime: "09:00", endTime: "10:00" },
+    ]);
+  };
+
+  const handleRemoveBlock = (index: number) => {
+    setBlocks((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!calendarId) {
+      setError("Debes seleccionar un calendario.");
+      return;
+    }
+
+    if (blocks.length === 0) {
+      setError("Debes registrar al menos un bloque de horario.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Sesión expirada, vuelve a iniciar sesión");
+
+      const authConfig = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      if (isEditMode && editingEvent) {
+        // ========== MODO EDITAR ==========
+        const block = blocks[0]; // solo editamos este bloque
+        const [year, month, day] = block.date.split("-").map(Number);
+        const [sh, sm] = block.startTime.split(":").map(Number);
+        const [eh, em] = block.endTime.split(":").map(Number);
+
+        // 1. Actualizar evento
+        await api.put(
+          `/events/update_event/${editingEvent.eventId}`,
+          {
+            title,
+            description,
+            location,
+            calendar_id: calendarId,
+          },
+          authConfig
+        );
+
+        // 2. Actualizar time
+        await api.put(
+          `/times/update_time/${editingEvent.timeId}`,
+          {
+            start_time: {
+              year,
+              month,
+              day,
+              hour: sh,
+              minute: sm,
+            },
+            end_time: {
+              year,
+              month,
+              day,
+              hour: eh,
+              minute: em,
+            },
+            event_id: editingEvent.eventId,
+          },
+          authConfig
+        );
+      } else {
+        // ========== MODO CREAR ==========
+        // 1. Crear evento
+        const { data: created } = await api.post(
+          "/events/create_event",
+          {
+            title,
+            description,
+            location,
+            calendar_id: calendarId,
+          },
+          authConfig
+        );
+
+        const eventId: number = created.id ?? created.event_id ?? created;
+
+        // 2. Crear times para cada bloque
+        for (const b of blocks) {
+          const [year, month, day] = b.date.split("-").map(Number);
+          const [sh, sm] = b.startTime.split(":").map(Number);
+          const [eh, em] = b.endTime.split(":").map(Number);
+
+          await api.post(
+            "/times/create_time",
+            {
+              start_time: {
+                year,
+                month,
+                day,
+                hour: sh,
+                minute: sm,
+              },
+              end_time: {
+                year,
+                month,
+                day,
+                hour: eh,
+                minute: em,
+              },
+              event_id: eventId,
+            },
+            authConfig
+          );
+        }
+      }
+
+      onCreated();
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err?.response?.data?.detail ||
+          "Ocurrió un error al guardar el horario."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteBlock = async () => {
+    if (!editingEvent) return;
+    if (!window.confirm("¿Eliminar este bloque de horario?")) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Sesión expirada, vuelve a iniciar sesión");
+
+      const authConfig = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      await api.delete(`/times/delete_time/${editingEvent.timeId}`, authConfig);
+
+      onCreated();
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err?.response?.data?.detail ||
+          "Ocurrió un error al eliminar el bloque."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!show) return null;
 
   return (
-    <Modal show={show} onHide={onClose} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>Ingresar horario</Modal.Title>
-      </Modal.Header>
+    <>
+      <div className="popup-backdrop" onClick={onClose} />
 
-      <Modal.Body>
-        <Form>
-          <Form.Group className="mb-3">
-            <Form.Label>Título *</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Ej. Reunión con equipo"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </Form.Group>
+      <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="popup-header">
+          <h5 className="popup-title">
+            {isEditMode ? "Editar horario" : "Ingresar horario"}
+          </h5>
+        </div>
 
-          <Row>
-            <Col>
-              <Form.Group className="mb-3">
-                <Form.Label>Descripción</Form.Label>
-                <Form.Control
+        <form onSubmit={handleSubmit}>
+          <div className="popup-body">
+            {error && <div className="alert alert-danger">{error}</div>}
+
+            {/* Calendario */}
+            <div className="mb-3">
+              <label className="form-label">Calendario</label>
+              <select
+                className="form-select"
+                value={calendarId}
+                onChange={(e) => setCalendarId(Number(e.target.value))}
+                disabled={isEditMode} // normalmente el calendario no se cambia
+              >
+                <option value="">Selecciona un calendario</option>
+                {calendars.map((cal) => (
+                  <option key={cal.id} value={cal.id}>
+                    {cal.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Título */}
+            <div className="mb-3">
+              <label className="form-label">Título *</label>
+              <input
+                type="text"
+                className="form-control"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Descripción / Ubicación */}
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Descripción</label>
+                <input
                   type="text"
-                  placeholder="Opcional"
+                  className="form-control"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col>
-              <Form.Group className="mb-3">
-                <Form.Label>Ubicación</Form.Label>
-                <Form.Control
-                  type="text"
                   placeholder="Opcional"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Ubicación</label>
+                <input
+                  type="text"
+                  className="form-control"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Opcional"
                 />
-              </Form.Group>
-            </Col>
-          </Row>
+              </div>
+            </div>
 
-          <hr className="my-2" />
-          <div className="mb-2 d-flex align-items-center justify-content-between">
-            <strong>Bloques de horario</strong>
-            <Button size="sm" variant="outline-primary" onClick={addSlot}>
-              + Agregar bloque
-            </Button>
+            {/* Bloques de horario */}
+            <div className="mb-2 d-flex justify-content-between align-items-center">
+              <span className="fw-semibold">Bloques de horario</span>
+              {!isEditMode && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={handleAddBlock}
+                >
+                  + Agregar bloque
+                </button>
+              )}
+            </div>
+
+            {blocks.map((b, index) => (
+              <div key={index} className="row align-items-center mb-2">
+                <div className="col-md-4 mb-2 mb-md-0">
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={b.date}
+                    onChange={(e) =>
+                      handleChangeBlock(index, "date", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="col-md-3 mb-2 mb-md-0">
+                  <input
+                    type="time"
+                    className="form-control"
+                    value={b.startTime}
+                    onChange={(e) =>
+                      handleChangeBlock(index, "startTime", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="col-md-3 mb-2 mb-md-0">
+                  <input
+                    type="time"
+                    className="form-control"
+                    value={b.endTime}
+                    onChange={(e) =>
+                      handleChangeBlock(index, "endTime", e.target.value)
+                    }
+                  />
+                </div>
+                {!isEditMode && blocks.length > 1 && (
+                  <div className="col-md-2 text-end">
+                    <button
+                      type="button"
+                      className="btn btn-link text-danger"
+                      onClick={() => handleRemoveBlock(index)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
-          {slots.map((s, idx) => (
-            <Row key={idx} className="g-2 align-items-end mb-2">
-              <Col md={5}>
-                <Form.Group>
-                  <Form.Label>Fecha</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={ymd(s.date)}
-                    onChange={(e) => updateSlot(idx, { date: new Date(e.target.value) })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Inicio</Form.Label>
-                  <Form.Control
-                    type="time"
-                    value={s.start}
-                    onChange={(e) => updateSlot(idx, { start: e.target.value })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group>
-                  <Form.Label>Fin</Form.Label>
-                  <Form.Control
-                    type="time"
-                    value={s.end}
-                    onChange={(e) => updateSlot(idx, { end: e.target.value })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={1} className="text-end">
-                {slots.length > 1 && (
-                  <Button
-                    size="sm"
-                    variant="outline-danger"
-                    onClick={() => removeSlot(idx)}
-                  >
-                    ×
-                  </Button>
-                )}
-              </Col>
-            </Row>
-          ))}
+          <div className="popup-footer d-flex justify-content-between">
+            {isEditMode ? (
+              <button
+                type="button"
+                className="btn btn-outline-danger"
+                onClick={handleDeleteBlock}
+                disabled={loading}
+              >
+                Eliminar bloque
+              </button>
+            ) : (
+              <span />
+            )}
 
-          {error && <div className="text-danger mt-2">{error}</div>}
-        </Form>
-      </Modal.Body>
-
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onClose} disabled={submitting}>
-          Cancelar
-        </Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? "Guardando..." : "Guardar"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+            <div>
+              <button
+                type="button"
+                className="btn btn-secondary me-2"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? "Guardando..." : isEditMode ? "Guardar cambios" : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </>
   );
 }
