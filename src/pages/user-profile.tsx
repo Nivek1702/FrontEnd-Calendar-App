@@ -27,8 +27,14 @@ export default function UserProfileModal({ open, onClose }: Props) {
       setErr(null);
       try {
         // 👉 ajusta si tu API usa otra ruta
-        const userId = localStorage.getItem('user_id');
-        const { data } = await api.get(`/users/get_user/${userId}`);
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("Sesión expirada, vuelve a iniciar sesión");
+
+        const { data } = await api.get(`/users/get_user/me`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
         setUser(data);
       } catch (e: any) {
         console.error(e);
