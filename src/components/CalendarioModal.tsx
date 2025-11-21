@@ -1,18 +1,23 @@
 // src/components/CalendarioModal.tsx
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import type { UserCalendar } from "../types/calendar";
 import "../css/CalendarioModal.css";
 
 interface CalendarioModalProps {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;              // crear
+  onUpdated?: () => void;              // editar
+  calendar?: UserCalendar | null;      // calendario a editar (null = crear)
 }
 
 export default function CalendarioModal({
   open,
   onClose,
   onCreated,
+  onUpdated,
+  calendar,
 }: CalendarioModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -20,14 +25,24 @@ export default function CalendarioModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isEdit = !!calendar;
+
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+
+    if (calendar) {
+      // Modo edición: precargar datos
+      setName(calendar.name ?? "");
+      setDescription(calendar.description ?? "");
+      setColor(calendar.color ?? "#1e90ff");
+    } else {
+      // Modo creación: limpiar
       setName("");
       setDescription("");
       setColor("#1e90ff");
-      setError(null);
     }
-  }, [open]);
+    setError(null);
+  }, [open, calendar]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,29 +55,41 @@ export default function CalendarioModal({
         throw new Error("Sesión expirada. Vuelve a iniciar sesión.");
       }
 
-      await api.post(
-        "/calendars/create_calendar",
-        {
-          name,
-          description,
-          color,
-        },
-        {
-          headers: {
-            // 👇 header Authorization: Bearer <token>
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const payload = {
+        name,
+        description,
+        color,
+      };
 
-      onCreated();
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      if (isEdit && calendar) {
+        // EDITAR CALENDARIO
+        await api.put(
+          `/calendars/update_calendar/${calendar.id}`,
+          payload,
+          config
+        );
+        onUpdated?.();
+      } else {
+        // CREAR CALENDARIO
+        await api.post("/calendars/create_calendar", payload, config);
+        onCreated?.();
+      }
+
       onClose();
     } catch (err: any) {
       console.error(err);
       setError(
         err?.response?.data?.detail ||
           err.message ||
-          "Ocurrió un error al crear el calendario"
+          (isEdit
+            ? "Ocurrió un error al actualizar el calendario"
+            : "Ocurrió un error al crear el calendario")
       );
     } finally {
       setLoading(false);
@@ -77,7 +104,9 @@ export default function CalendarioModal({
 
       <div className="popup-modal" onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
-          <h5 className="popup-title">Nuevo calendario</h5>
+          <h5 className="popup-title">
+            {isEdit ? "Editar calendario" : "Nuevo calendario"}
+          </h5>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -130,7 +159,11 @@ export default function CalendarioModal({
               className="btn btn-primary"
               disabled={loading}
             >
-              {loading ? "Guardando..." : "Crear calendario"}
+              {loading
+                ? "Guardando..."
+                : isEdit
+                ? "Guardar cambios"
+                : "Crear calendario"}
             </button>
           </div>
         </form>

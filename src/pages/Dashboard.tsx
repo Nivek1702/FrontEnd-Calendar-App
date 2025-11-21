@@ -5,7 +5,7 @@ import { api } from "../api";
 
 // Vistas
 import MonthCalendar from "../components/MonthCalendar";
-import WeekView, { type WeekEvent } from "../components/Weekview";
+import WeekView, { type WeekEvent } from "../components/WeekView";
 
 // Tipos
 import type { DayEvent, UserCalendar } from "../types/calendar";
@@ -16,7 +16,7 @@ import TopBar from "../components/TopBar";
 import UserProfileModal from "./user-profile";
 import CalendarioModal from "../components/CalendarioModal";
 import EliminarCalendario from "../components/EliminarCalendario";
-import CalendarSidebar from "../components/CalendarSideBar";
+import CalendarSidebar from "../components/CalendarSidebar";
 
 // CSS
 import "../css/WeekView.css";
@@ -70,6 +70,11 @@ export default function Dashboard() {
   const [calendarToDelete, setCalendarToDelete] =
     useState<UserCalendar | null>(null);
   const [showDeleteCalendar, setShowDeleteCalendar] = useState(false);
+
+  // NUEVO: calendario que se está editando
+  const [calendarToEdit, setCalendarToEdit] = useState<UserCalendar | null>(
+    null
+  );
 
   const handleLogout = () => {
     localStorage.clear();
@@ -269,7 +274,10 @@ export default function Dashboard() {
           calendars={calendars}
           visibleCalendarIds={visibleCalendarIds}
           onToggleCalendarVisibility={toggleCalendarVisibility}
-          onNewCalendar={() => setShowCreateCalendar(true)}
+          onNewCalendar={() => {
+            setCalendarToEdit(null);          // crear
+            setShowCreateCalendar(true);
+          }}
           onOpenAddSchedule={() => {
             setSelectedDate(value);
             setEditingEvent(null);
@@ -279,6 +287,10 @@ export default function Dashboard() {
           onRequestDeleteCalendar={(cal) => {
             setCalendarToDelete(cal);
             setShowDeleteCalendar(true);
+          }}
+          onEditCalendar={(cal) => {
+            setCalendarToEdit(cal);           // editar
+            setShowCreateCalendar(true);
           }}
         />
 
@@ -399,11 +411,16 @@ export default function Dashboard() {
         onClose={() => setShowProfile(false)}
       />
 
-      {/* Crear calendario */}
+      {/* Crear / Editar calendario */}
       <CalendarioModal
         open={showCreateCalendar}
-        onClose={() => setShowCreateCalendar(false)}
+        calendar={calendarToEdit}
+        onClose={() => {
+          setShowCreateCalendar(false);
+          setCalendarToEdit(null);
+        }}
         onCreated={loadUserCalendars}
+        onUpdated={loadUserCalendars}
       />
 
       {/* Eliminar calendario */}

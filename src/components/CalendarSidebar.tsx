@@ -1,5 +1,5 @@
+// src/components/CalendarSidebar.tsx
 import type { UserCalendar } from "../types/calendar";
-
 import "../css/Dashboard.css";
 
 interface CalendarSidebarProps {
@@ -10,6 +10,7 @@ interface CalendarSidebarProps {
   onOpenAddSchedule: () => void;
   onGenerateSchedule: () => void;
   onRequestDeleteCalendar: (calendar: UserCalendar) => void;
+  onEditCalendar?: (calendar: UserCalendar) => void; // NUEVO
 }
 
 export default function CalendarSidebar({
@@ -20,6 +21,7 @@ export default function CalendarSidebar({
   onOpenAddSchedule,
   onGenerateSchedule,
   onRequestDeleteCalendar,
+  onEditCalendar,
 }: CalendarSidebarProps) {
   return (
     <aside className="calendar-sidebar">
@@ -54,10 +56,22 @@ export default function CalendarSidebar({
                 {cal.name}
               </span>
 
+              {/* Botón editar */}
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary me-1"
+                onClick={() => onEditCalendar?.(cal)}
+                title="Editar calendario"
+              >
+                ✏
+              </button>
+
+              {/* Botón eliminar */}
               <button
                 type="button"
                 className="btn btn-sm btn-outline-danger"
                 onClick={() => onRequestDeleteCalendar(cal)}
+                title="Eliminar calendario"
               >
                 🗑
               </button>
