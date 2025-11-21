@@ -1,0 +1,159 @@
+/* Contenedor general */
+.week-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- CABECERA ---------- */
+
+.week-view-header {
+  display: grid;
+  grid-template-columns: 70px repeat(7, 1fr);
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 8px 0;
+}
+
+.week-view-header-day {
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.week-view-header-day-name {
+  text-transform: capitalize;
+  color: #6b7280;
+}
+
+.week-view-header-day-num {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ---------- CUERPO ---------- */
+
+.week-view-body {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  height: calc(100vh - 220px); /* ajusta según tu layout */
+  overflow-y: auto;
+}
+
+/* Columna de horas */
+
+.week-view-hours {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.week-view-hour-slot {
+  min-height: 52px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 4px 6px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Área de días */
+
+.week-view-days {
+  display: flex;
+  flex: 1;
+}
+
+.week-view-day-column {
+  flex: 1;
+  border-left: 1px solid #f3f4f6;
+}
+
+.week-view-day-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cada bloque horario clicable (por día) */
+
+.week-view-day-hour-slot {
+  min-height: 52px;
+  border-bottom: 1px solid #f3f4f6;
+  padding: 4px 6px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.week-view-day-hour-slot:hover {
+  background: #f9fafb;
+}
+
+/* Evento dentro de un bloque horario */
+
+.week-view-event {
+  border-radius: 10px;
+  padding: 4px 10px;
+  color: #ffffff;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15);
+  border: 1px solid transparent;
+  max-width: 100%;
+  /* El slot se expande con el contenido del evento */
+}
+
+.week-view-event-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.week-view-event-time {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Contenedor del día: debe ser relativo para posicionar el señalador */
+.week-view-day-inner {
+  position: relative;
+}
+
+/* Línea horizontal que marca la hora actual */
+.week-view-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid #e11d48; /* rojo tipo Google Calendar */
+  z-index: 3;
+  display: flex;
+  align-items: center;
+}
+
+/* Punto rojo en el inicio de la línea (lado izquierdo) */
+.week-view-now-dot {
+  position: absolute;
+  left: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background-color: #e11d48;
+}
+/* Día actual en la cabecera */
+.week-view-header-day--today .week-view-header-day-name,
+.week-view-header-day--today .week-view-header-day-num {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+/* Día actual en el cuerpo */
+.week-view-day-column--today .week-view-day-inner {
+  background-color: #f3f7ff; /* azulito muy suave */
+}
+
+/* Si quieres que los eventos resalten un poco más sobre el fondo del día actual */
+.week-view-day-column--today .week-view-event {
+  box-shadow: 0 0 0 1px rgba(26, 115, 232, 0.25);
+}

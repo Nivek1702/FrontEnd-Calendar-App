@@ -1,6 +1,8 @@
 .calendar-layout {
   display: flex;
-  padding: 1.5rem 3rem;
+  /* Antes: padding: 1.5rem 3rem; (48px a los lados)
+     Ahora lo igualamos al TopBar que usa 40px → 2.5rem */
+  padding: 1.5rem 2.5rem;
   gap: 2rem;
 }
 
@@ -61,6 +63,7 @@
 }
 
 .calendar-header {
+  position: relative;     /* para posicionar bien el dropdown de vista */
   text-align: center;
   margin-bottom: 1rem;
 }
@@ -74,15 +77,15 @@
 
 /* separa el botón "+ Nuevo calendario" de los otros */
 .calendar-sidebar .btn-outline-primary {
-  margin-bottom: 0.75rem;   /* prueba 0.75 o 1rem si quieres más espacio */
+  margin-bottom: 0.75rem;
 }
 
 /* más espacio vertical entre "Ingresar" y "Generar" */
 .sidebar-actions {
-  margin-top: 0.75rem;      /* ya lo tenías, puedes subirlo a 1rem si quieres */
+  margin-top: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;             /* espacio entre ambos botones */
+  gap: 0.75rem;
 }
 
 .calendar-checkbox {
@@ -95,4 +98,91 @@
 
 .calendar-list-item--disabled .calendar-color-dot {
   opacity: 0.4;
+}
+
+.calendar-delete-btn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0 4px;
+}
+
+.calendar-delete-btn:hover {
+  color: #b91c1c;
+}
+
+/* ===== Dropdown Mes / Semana estilo Perfil ===== */
+
+.view-dropdown {
+  position: absolute;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.view-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;          /* píldora */
+  border: 1px solid #d0d7e2;
+  background-color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.view-dropdown-toggle:hover {
+  background-color: #f3f4f6;
+  border-color: #c2c9d6;
+}
+
+.view-dropdown-caret {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Menú desplegable */
+.view-dropdown-menu {
+  position: absolute;
+  top: 110%;        /* un poco debajo del botón */
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  padding: 4px 0;
+  border-radius: 10px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+  z-index: 20;
+}
+
+.view-dropdown-item {
+  width: 100%;
+  padding: 0.4rem 0.9rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.view-dropdown-item:hover {
+  background-color: #f3f4f6;
+}
+
+.view-dropdown-item--active {
+  font-weight: 600;
+  color: #1a73e8;
+  background-color: #e8f0fe;
 }

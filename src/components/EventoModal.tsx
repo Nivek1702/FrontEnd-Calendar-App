@@ -300,7 +300,6 @@ export default function AddScheduleModal({
                 onChange={(e) => setCalendarId(Number(e.target.value))}
                 disabled={isEditMode} // normalmente el calendario no se cambia
               >
-                <option value="">Selecciona un calendario</option>
                 {calendars.map((cal) => (
                   <option key={cal.id} value={cal.id}>
                     {cal.name}

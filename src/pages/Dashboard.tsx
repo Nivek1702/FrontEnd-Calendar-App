@@ -1,34 +1,26 @@
 // src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
-import Calendar from "react-calendar";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api";
+
+// Vistas
+import MonthCalendar from "../components/MonthCalendar";
+import WeekView, { type WeekEvent } from "../components/Weekview";
+
+// Tipos
+import type { DayEvent, UserCalendar } from "../types/calendar";
+
+// Modales / componentes
 import AddScheduleModal from "../components/EventoModal";
-import { formatRangeLabel } from "../utils/datetime";
-import "../css/CalendarioNav.css";
-import "../index.css";
-import "../css/Dashboard.css";
 import TopBar from "../components/TopBar";
 import UserProfileModal from "./user-profile";
-import { useNavigate } from "react-router-dom";
 import CalendarioModal from "../components/CalendarioModal";
+import EliminarCalendario from "../components/EliminarCalendario";
+import CalendarSidebar from "../components/CalendarSideBar";
 
-type UserCalendar = {
-  id: number;
-  name: string;
-  description: string;
-  color: string;
-};
-
-type DayEvent = {
-  id: number; // id del time
-  eventId: number;
-  calendarId: number;
-  title: string;
-  description: string;
-  location: string;
-  startTime: string; // HH:MM
-  endTime: string;   // HH:MM
-};
+// CSS
+import "../css/WeekView.css";
+import "../css/Dashboard.css";
 
 type EditableEvent = {
   timeId: number;
@@ -42,6 +34,14 @@ type EditableEvent = {
   endTime: string;   // HH:MM
 };
 
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = (date.getDay() + 6) % 7; // lunes = 0
+  date.setDate(date.getDate() - day);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
 
@@ -54,15 +54,22 @@ export default function Dashboard() {
 
   const [showModal, setShowModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showCreateCalendar, setShowCreateCalendar] = useState(false); // por si luego lo usas
+  const [showCreateCalendar, setShowCreateCalendar] = useState(false);
+
+  // Mes / Semana
+  const [viewMode, setViewMode] = useState<"month" | "week">("month");
+  const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
 
   const [calendars, setCalendars] = useState<UserCalendar[]>([]);
   const [visibleCalendarIds, setVisibleCalendarIds] = useState<Set<number>>(
     new Set()
   );
 
-  // evento que se está editando (si es null => modo crear)
   const [editingEvent, setEditingEvent] = useState<EditableEvent | null>(null);
+
+  const [calendarToDelete, setCalendarToDelete] =
+    useState<UserCalendar | null>(null);
+  const [showDeleteCalendar, setShowDeleteCalendar] = useState(false);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -85,7 +92,6 @@ export default function Dashboard() {
       );
 
       setCalendars(data);
-      // por defecto todos visibles
       setVisibleCalendarIds(new Set(data.map((c) => c.id)));
     } catch (err) {
       console.error("Error cargando calendarios del usuario", err);
@@ -112,7 +118,6 @@ export default function Dashboard() {
         },
       };
 
-      // Pedimos para cada calendario sus eventos+times
       const requests = calendars.map(async (cal) => {
         const { data } = await api.get(
           `/calendars/get_calendar_events_times/${cal.id}`,
@@ -124,7 +129,7 @@ export default function Dashboard() {
       const responses = await Promise.all(requests);
       const map = new Map<string, DayEvent[]>();
 
-      for (const { calendar, data } of responses) {
+      for (const { data } of responses) {
         if (!data || !data.events_times) continue;
 
         for (const et of data.events_times) {
@@ -167,7 +172,7 @@ export default function Dashboard() {
         }
       }
 
-      // ordenar cada día por hora inicio
+      // Ordenar eventos de cada día por hora de inicio
       for (const [k, arr] of map.entries()) {
         arr.sort((a, b) =>
           a.startTime < b.startTime ? -1 : a.startTime > b.startTime ? 1 : 0
@@ -181,7 +186,7 @@ export default function Dashboard() {
     }
   }
 
-  // ============= Efectos iniciales ============
+  // ============= Efectos iniciales =============
   useEffect(() => {
     const access_token = localStorage.getItem("access_token");
     if (!access_token) {
@@ -191,7 +196,6 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
-  // recargar eventos cuando cambie el mes o los calendarios
   useEffect(() => {
     if (calendars.length > 0) {
       loadMonthData(value);
@@ -199,9 +203,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, calendars]);
 
-  const monthKey = `${value.getFullYear()}-${value.getMonth() + 1}`;
-
-  // ============= Manejo de checkboxes ============
+  // ============= Manejo de checkboxes =============
   const toggleCalendarVisibility = (id: number) => {
     setVisibleCalendarIds((prev) => {
       const next = new Set(prev);
@@ -211,75 +213,48 @@ export default function Dashboard() {
     });
   };
 
-  // ============= Render de eventos por día ============
-  const tileContent = ({ date, view }: { date: Date; view: string }) => {
-    if (view !== "month") return null;
-
-    const key = date.toISOString().slice(0, 10);
-    let items = eventsMap.get(key) || [];
-
-    // filtrar por calendarios visibles
-    items = items.filter((e) => visibleCalendarIds.has(e.calendarId));
-
-    if (items.length === 0) return null;
-
-    return (
-      <div
-        className="mt-1"
-        style={{ display: "flex", flexDirection: "column", gap: 6 }}
-      >
-        {items.slice(0, 3).map((e) => {
-          const cal = calendars.find((c) => c.id === e.calendarId);
-          const color = cal?.color ?? "#eef6ff";
-
-          return (
-            <div
-              key={e.id}
-              className="cal-event"
-              style={{
-                backgroundColor: color,
-                borderColor: color,
-                cursor: "pointer",
-              }}
-              onClick={(ev) => {
-                ev.stopPropagation();
-                // preparar datos para editar
-                setEditingEvent({
-                  timeId: e.id,
-                  eventId: e.eventId,
-                  calendarId: e.calendarId,
-                  title: e.title,
-                  description: e.description,
-                  location: e.location,
-                  date: key,
-                  startTime: e.startTime,
-                  endTime: e.endTime,
-                });
-                setSelectedDate(date);
-                setShowModal(true);
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>{e.title}</div>
-              <div style={{ fontSize: "0.78rem", opacity: 0.8 }}>
-                {formatRangeLabel(e.startTime, e.endTime)}
-              </div>
-            </div>
-          );
-        })}
-        {items.length > 3 && (
-          <div
-            style={{
-              fontSize: "0.78rem",
-              opacity: 0.7,
-              textAlign: "center",
-            }}
-          >
-            +{items.length - 3} más
-          </div>
-        )}
-      </div>
-    );
+  // ============= Click en un evento (para editar) ============
+  const handleEventClick = (e: DayEvent, dateKey: string, date: Date) => {
+    setEditingEvent({
+      timeId: e.id,
+      eventId: e.eventId,
+      calendarId: e.calendarId,
+      title: e.title,
+      description: e.description,
+      location: e.location,
+      date: dateKey,
+      startTime: e.startTime,
+      endTime: e.endTime,
+    });
+    setSelectedDate(date);
+    setShowModal(true);
   };
+
+  // === datos para vista semanal ===
+  const weekStart = getMonday(value);
+  const weekDays: Date[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  const weekEvents: WeekEvent[] = [];
+  for (const day of weekDays) {
+    const key = day.toISOString().slice(0, 10);
+    const dayItems = (eventsMap.get(key) || []).filter((e) =>
+      visibleCalendarIds.has(e.calendarId)
+    );
+    for (const e of dayItems) {
+      weekEvents.push({
+        id: e.id,
+        calendarId: e.calendarId,
+        title: e.title,
+        date: key,
+        startTime: e.startTime,
+        endTime: e.endTime,
+      });
+    }
+  }
 
   return (
     <div className="calendar-page">
@@ -289,91 +264,121 @@ export default function Dashboard() {
       />
 
       <div className="calendar-layout">
-        {/* === PANEL LATERAL IZQUIERDO === */}
-        <aside className="calendar-sidebar">
-          <h5 className="sidebar-title">Mis calendarios</h5>
-
-          <ul className="calendar-list">
-            {calendars.length === 0 && (
-              <li className="calendar-list-empty">
-                Aún no tienes calendarios
-              </li>
-            )}
-
-            {calendars.map((cal) => {
-              const checked = visibleCalendarIds.has(cal.id);
-              return (
-                <li
-                  key={cal.id}
-                  className={
-                    "calendar-list-item" +
-                    (checked ? "" : " calendar-list-item--disabled")
-                  }
-                >
-                  <input
-                    type="checkbox"
-                    className="calendar-checkbox"
-                    checked={checked}
-                    onChange={() => toggleCalendarVisibility(cal.id)}
-                  />
-                  <span
-                    className="calendar-color-dot"
-                    style={{ backgroundColor: cal.color }}
-                  />
-                  <span className="calendar-name">{cal.name}</span>
-                </li>
-              );
-            })}
-          </ul>
-
-          <button
-            className="btn btn-outline-primary w-100 mt-3"
-            onClick={() => setShowCreateCalendar(true)}
-          >
-            + Nuevo calendario
-          </button>
-
-          <div className="sidebar-actions">
-            <button
-              className="btn btn-primary w-100"
-              onClick={() => {
-                setSelectedDate(value);
-                setEditingEvent(null); // modo crear
-                setShowModal(true);
-              }}
-            >
-              Ingresar horario
-            </button>
-            <button
-              className="btn btn-success w-100"
-              onClick={() => loadMonthData(value)}
-            >
-              Generar horario
-            </button>
-          </div>
-        </aside>
+        {/* === PANEL LATERAL === */}
+        <CalendarSidebar
+          calendars={calendars}
+          visibleCalendarIds={visibleCalendarIds}
+          onToggleCalendarVisibility={toggleCalendarVisibility}
+          onNewCalendar={() => setShowCreateCalendar(true)}
+          onOpenAddSchedule={() => {
+            setSelectedDate(value);
+            setEditingEvent(null);
+            setShowModal(true);
+          }}
+          onGenerateSchedule={() => loadMonthData(value)}
+          onRequestDeleteCalendar={(cal) => {
+            setCalendarToDelete(cal);
+            setShowDeleteCalendar(true);
+          }}
+        />
 
         {/* === CONTENIDO PRINCIPAL === */}
         <div className="calendar-content">
           <header className="calendar-header">
             <h2>Calendario Planifyme</h2>
+
+            {/* Dropdown Mes / Semana */}
+            <div className="view-dropdown">
+              <button
+                type="button"
+                className="view-dropdown-toggle"
+                onClick={() => setViewDropdownOpen((open) => !open)}
+              >
+                {viewMode === "month" ? "Mes" : "Semana"}
+                <span className="view-dropdown-caret">▾</span>
+              </button>
+
+              {viewDropdownOpen && (
+                <div className="view-dropdown-menu">
+                  <button
+                    type="button"
+                    className={
+                      "view-dropdown-item" +
+                      (viewMode === "month"
+                        ? " view-dropdown-item--active"
+                        : "")
+                    }
+                    onClick={() => {
+                      setViewMode("month");
+                      setViewDropdownOpen(false);
+                    }}
+                  >
+                    Mes
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      "view-dropdown-item" +
+                      (viewMode === "week"
+                        ? " view-dropdown-item--active"
+                        : "")
+                    }
+                    onClick={() => {
+                      // 👉 al cambiar a semana, ir a la semana actual
+                      setViewMode("week");
+                      setValue(new Date());
+                      setViewDropdownOpen(false);
+                    }}
+                  >
+                    Semana
+                  </button>
+                </div>
+              )}
+            </div>
           </header>
 
           <main className="calendar-main">
-            <Calendar
-              value={value}
-              onChange={(v) => setValue(v as Date)}
-              tileContent={tileContent}
-              onClickDay={(date) => {
-                setSelectedDate(date);
-                setEditingEvent(null); // nuevo evento
-                setShowModal(true);
-              }}
-            />
+            {viewMode === "month" ? (
+              <MonthCalendar
+                date={value}
+                onChangeDate={setValue}
+                eventsMap={eventsMap}
+                calendars={calendars}
+                visibleCalendarIds={visibleCalendarIds}
+                onClickDay={(date) => {
+                  setSelectedDate(date);
+                  setEditingEvent(null);
+                  setShowModal(true);
+                }}
+                onClickEvent={handleEventClick}
+              />
+            ) : (
+              <WeekView
+                weekDays={weekDays}
+                events={weekEvents}
+                calendars={calendars}
+                onSlotClick={({ date, hour }) => {
+                  const [Y, M, D] = date.split("-").map(Number);
+                  const dt = new Date(Y, M - 1, D, hour, 0, 0, 0);
+                  setSelectedDate(dt);
+                  setEditingEvent(null);
+                  setShowModal(true);
+                }}
+                onEventClick={(we) => {
+                  const key = we.date;
+                  const list = eventsMap.get(key) || [];
+                  const dayEvent = list.find((e) => e.id === we.id);
+                  if (!dayEvent) return;
+                  const d = new Date(key);
+                  handleEventClick(dayEvent, key, d);
+                }}
+              />
+            )}
           </main>
         </div>
       </div>
 
+      {/* Modal crear / editar evento + times */}
       <AddScheduleModal
         show={showModal}
         onClose={() => {
@@ -388,16 +393,32 @@ export default function Dashboard() {
         editingEvent={editingEvent}
       />
 
+      {/* Perfil */}
       <UserProfileModal
         open={showProfile}
         onClose={() => setShowProfile(false)}
       />
 
-      {/* Si usas un modal separado para crear calendario, lo dejas aquí */}
+      {/* Crear calendario */}
       <CalendarioModal
         open={showCreateCalendar}
         onClose={() => setShowCreateCalendar(false)}
         onCreated={loadUserCalendars}
+      />
+
+      {/* Eliminar calendario */}
+      <EliminarCalendario
+        open={showDeleteCalendar}
+        calendarId={calendarToDelete?.id ?? null}
+        calendarName={calendarToDelete?.name}
+        onClose={() => {
+          setShowDeleteCalendar(false);
+          setCalendarToDelete(null);
+        }}
+        onDeleted={async () => {
+          await loadUserCalendars();
+          await loadMonthData(value);
+        }}
       />
     </div>
   );
