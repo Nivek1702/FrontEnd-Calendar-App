@@ -186,3 +186,29 @@
   color: #1a73e8;
   background-color: #e8f0fe;
 }
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 1rem;
+}
+
+.week-nav-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.week-nav-btn:hover {
+  background: #f3f4f6;
+}
+
+.week-nav-label {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+

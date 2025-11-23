@@ -17,6 +17,7 @@ import UserProfileModal from "./user-profile";
 import CalendarioModal from "../components/CalendarioModal";
 import EliminarCalendario from "../components/EliminarCalendario";
 import CalendarSidebar from "../components/CalendarSidebar";
+import ChatbotWidget from "../components/ChatbotWidget";
 
 // CSS
 import "../css/WeekView.css";
@@ -40,6 +41,12 @@ function getMonday(d: Date): Date {
   date.setDate(date.getDate() - day);
   date.setHours(0, 0, 0, 0);
   return date;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
 }
 
 export default function Dashboard() {
@@ -71,7 +78,7 @@ export default function Dashboard() {
     useState<UserCalendar | null>(null);
   const [showDeleteCalendar, setShowDeleteCalendar] = useState(false);
 
-  // NUEVO: calendario que se está editando
+  // Calendario que se está editando
   const [calendarToEdit, setCalendarToEdit] = useState<UserCalendar | null>(
     null
   );
@@ -237,6 +244,7 @@ export default function Dashboard() {
 
   // === datos para vista semanal ===
   const weekStart = getMonday(value);
+
   const weekDays: Date[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
@@ -257,9 +265,15 @@ export default function Dashboard() {
         date: key,
         startTime: e.startTime,
         endTime: e.endTime,
+        description: e.description,
+        location: e.location,
       });
     }
   }
+
+  // helpers para avanzar / retroceder semana
+  const goPrevWeek = () => setValue((prev) => addDays(prev, -7));
+  const goNextWeek = () => setValue((prev) => addDays(prev, 7));
 
   return (
     <div className="calendar-page">
@@ -275,7 +289,7 @@ export default function Dashboard() {
           visibleCalendarIds={visibleCalendarIds}
           onToggleCalendarVisibility={toggleCalendarVisibility}
           onNewCalendar={() => {
-            setCalendarToEdit(null);          // crear
+            setCalendarToEdit(null); // crear
             setShowCreateCalendar(true);
           }}
           onOpenAddSchedule={() => {
@@ -283,13 +297,12 @@ export default function Dashboard() {
             setEditingEvent(null);
             setShowModal(true);
           }}
-          onGenerateSchedule={() => loadMonthData(value)}
           onRequestDeleteCalendar={(cal) => {
             setCalendarToDelete(cal);
             setShowDeleteCalendar(true);
           }}
           onEditCalendar={(cal) => {
-            setCalendarToEdit(cal);           // editar
+            setCalendarToEdit(cal); // editar
             setShowCreateCalendar(true);
           }}
         />
@@ -336,7 +349,7 @@ export default function Dashboard() {
                         : "")
                     }
                     onClick={() => {
-                      // 👉 al cambiar a semana, ir a la semana actual
+                      // al cambiar a semana, ir a la semana actual
                       setViewMode("week");
                       setValue(new Date());
                       setViewDropdownOpen(false);
@@ -384,6 +397,8 @@ export default function Dashboard() {
                   const d = new Date(key);
                   handleEventClick(dayEvent, key, d);
                 }}
+                onPrevWeek={goPrevWeek}
+                onNextWeek={goNextWeek}
               />
             )}
           </main>
@@ -437,6 +452,9 @@ export default function Dashboard() {
           await loadMonthData(value);
         }}
       />
+
+      {/* Chatbot flotante */}
+      <ChatbotWidget />
     </div>
   );
 }

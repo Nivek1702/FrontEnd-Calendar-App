@@ -27,6 +27,7 @@ export default function LoginF() {
       if (data === true) {
         navigate("/VerificarUsuarioLogin");
       } else {
+        console.log(data);
         setError("Credenciales inválidas");
       }
     } catch (err) {

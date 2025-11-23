@@ -1,6 +1,7 @@
 // src/components/EventoModal.tsx
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import TimeSelect from "./TimeSelect";
 
 interface UserCalendar {
   id: number;
@@ -298,7 +299,7 @@ export default function AddScheduleModal({
                 className="form-select"
                 value={calendarId}
                 onChange={(e) => setCalendarId(Number(e.target.value))}
-                disabled={isEditMode} // normalmente el calendario no se cambia
+                disabled={isEditMode}
               >
                 {calendars.map((cal) => (
                   <option key={cal.id} value={cal.id}>
@@ -370,26 +371,23 @@ export default function AddScheduleModal({
                     }
                   />
                 </div>
+
+                {/* Inicio */}
                 <div className="col-md-3 mb-2 mb-md-0">
-                  <input
-                    type="time"
-                    className="form-control"
+                  <TimeSelect
                     value={b.startTime}
-                    onChange={(e) =>
-                      handleChangeBlock(index, "startTime", e.target.value)
-                    }
+                    onChange={(v) => handleChangeBlock(index, "startTime", v)}
                   />
                 </div>
+
+                {/* Fin */}
                 <div className="col-md-3 mb-2 mb-md-0">
-                  <input
-                    type="time"
-                    className="form-control"
+                  <TimeSelect
                     value={b.endTime}
-                    onChange={(e) =>
-                      handleChangeBlock(index, "endTime", e.target.value)
-                    }
+                    onChange={(v) => handleChangeBlock(index, "endTime", v)}
                   />
                 </div>
+
                 {!isEditMode && blocks.length > 1 && (
                   <div className="col-md-2 text-end">
                     <button
@@ -433,7 +431,11 @@ export default function AddScheduleModal({
                 className="btn btn-primary"
                 disabled={loading}
               >
-                {loading ? "Guardando..." : isEditMode ? "Guardar cambios" : "Guardar"}
+                {loading
+                  ? "Guardando..."
+                  : isEditMode
+                  ? "Guardar cambios"
+                  : "Guardar"}
               </button>
             </div>
           </div>

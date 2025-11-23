@@ -8,7 +8,6 @@ interface CalendarSidebarProps {
   onToggleCalendarVisibility: (id: number) => void;
   onNewCalendar: () => void;
   onOpenAddSchedule: () => void;
-  onGenerateSchedule: () => void;
   onRequestDeleteCalendar: (calendar: UserCalendar) => void;
   onEditCalendar?: (calendar: UserCalendar) => void; // NUEVO
 }
@@ -19,7 +18,6 @@ export default function CalendarSidebar({
   onToggleCalendarVisibility,
   onNewCalendar,
   onOpenAddSchedule,
-  onGenerateSchedule,
   onRequestDeleteCalendar,
   onEditCalendar,
 }: CalendarSidebarProps) {
@@ -93,12 +91,6 @@ export default function CalendarSidebar({
           onClick={onOpenAddSchedule}
         >
           Ingresar horario
-        </button>
-        <button
-          className="btn btn-success w-100"
-          onClick={onGenerateSchedule}
-        >
-          Generar horario
         </button>
       </div>
     </aside>

@@ -1,0 +1,52 @@
+/* src/css/TimeSelect.css */
+
+.time-select {
+  position: relative;
+}
+
+.time-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 2rem; /* espacio para la flechita */
+}
+
+.time-select-caret {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+}
+
+/* Panel desplegable pequeño, con scroll interno */
+.time-select-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1050;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-top: 4px;
+  min-width: 100%;
+  max-height: 200px;        /* 🔹 límite de altura */
+  overflow-y: auto;         /* 🔹 scroll interno */
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.time-select-option {
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.time-select-option:hover {
+  background: #f3f4f6;
+}
+
+.time-select-option--active {
+  background: #e5f0ff;
+  font-weight: 600;
+}
