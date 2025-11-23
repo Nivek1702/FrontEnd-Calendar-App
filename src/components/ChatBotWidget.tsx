@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import "../css/ChatbotWidget.css";
-import chatbotIcon from "../../public/chatbot_without_back.png";
+import chatbotIcon from "../Imagenes/chatbot_without_back.png";
 import ReactMarkdown from "react-markdown";
 
 type ChatMessage = {
