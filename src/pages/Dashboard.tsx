@@ -454,7 +454,17 @@ export default function Dashboard() {
       />
 
       {/* Chatbot flotante */}
-      <ChatbotWidget />
+      {/* === AQUI HACEMOS EL CAMBIO === */}
+      {/* Pasamos una función que ejecuta loadMonthData con la fecha actual */}
+      <ChatbotWidget 
+        onActionSuccess={() => {
+            // Opcional: Si el bot también crea calendarios nuevos, descomenta la siguiente línea:
+            // loadUserCalendars(); 
+            
+            // Recargamos los eventos del mes actual
+            loadMonthData(value); 
+        }} 
+      />
     </div>
   );
 }

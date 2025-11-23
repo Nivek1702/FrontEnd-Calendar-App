@@ -5,13 +5,18 @@ import "../css/ChatbotWidget.css";
 import chatbotIcon from "../Imagenes/chatbot_without_back.png";
 import ReactMarkdown from "react-markdown";
 
+// 1. Definimos la interfaz para las props
+type ChatbotWidgetProps = {
+  onActionSuccess?: () => void; // Esta es la función que recargará el calendario
+};
+
 type ChatMessage = {
   id: number;
   from: "user" | "bot";
   text: string;
 };
 
-export default function ChatbotWidget() {
+export default function ChatbotWidget({ onActionSuccess }: ChatbotWidgetProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -106,6 +111,14 @@ export default function ChatbotWidget() {
       };
 
       setMessages((prev) => [...prev, botMsg]);
+
+      // 3. ¡AQUÍ ESTÁ LA CLAVE! 
+      // Si el bot respondió bien, asumimos que pudo haber creado horarios.
+      // Llamamos a la función para refrescar el dashboard.
+      if (onActionSuccess) {
+        onActionSuccess();
+      }
+
     } catch (err) {
       console.error("Error llamando al agente", err);
       setMessages((prev) => [
