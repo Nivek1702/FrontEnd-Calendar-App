@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import "../css/ChatbotWidget.css";
-import chatbotIcon from "../Imagenes/chatbot.png";
+import chatbotIcon from "../../public/chatbot_without_back.png";
+import ReactMarkdown from "react-markdown";
 
 type ChatMessage = {
   id: number;
@@ -95,7 +96,7 @@ export default function ChatbotWidget() {
       );
 
       const botText =
-        data?.message ??
+        data?.response ??
         "He procesado tu solicitud, pero no recibí un mensaje claro del agente.";
 
       const botMsg: ChatMessage = {
@@ -179,7 +180,7 @@ export default function ChatbotWidget() {
                     : "chatbot-message-bot")
                 }
               >
-                {m.text}
+                <ReactMarkdown>{m.text}</ReactMarkdown>
               </div>
             ))}
 
