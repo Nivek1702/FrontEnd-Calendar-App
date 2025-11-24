@@ -1,3 +1,4 @@
+// src/pages/ForgotPassword.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
@@ -8,15 +9,9 @@ export default function ForgotPassword() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState<string>("");
-  const [code, setCode] = useState<string>("");
-
   const [sending, setSending] = useState<boolean>(false);
-  const [verifying, setVerifying] = useState<boolean>(false);
-
-  const [codeSent, setCodeSent] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const [cooldown, setCooldown] = useState<number>(0);
 
   useEffect(() => {
@@ -32,7 +27,9 @@ export default function ForgotPassword() {
     setMessage(null);
     setError(null);
 
-    if (!isValidEmail(email)) {
+    const cleanEmail = email.trim();
+
+    if (!isValidEmail(cleanEmail)) {
       setError("Ingresa un correo válido.");
       return;
     }
@@ -40,52 +37,33 @@ export default function ForgotPassword() {
 
     try {
       setSending(true);
-      await api.post("/auth/send-reset-code", { email: email.trim() });
 
-      setCodeSent(true);
-      setMessage("Código enviado a tu correo. Revisa tu bandeja (y SPAM).");
-      setCooldown(60); 
-    } catch (err: any) {
-      console.error(err);
-      setError(
-        err?.response?.data?.message ||
-          "No se pudo enviar el código. Inténtalo nuevamente."
+      const { data } = await api.post<boolean>(
+        "/users/change_password_send_ver_code",
+        { email: cleanEmail }
       );
-    } finally {
-      setSending(false);
-    }
-  };
 
-  const handleVerify = async () => {
-    setMessage(null);
-    setError(null);
-
-    if (!code.trim()) {
-      setError("Ingresa el código que recibiste.");
-      return;
-    }
-    try {
-      setVerifying(true);
-      const { data } = await api.post("/auth/verify-reset-code", {
-        email: email.trim(),
-        code: code.trim(),
-      });
-
-      if (data?.ok === true || data === true) {
-        navigate("/reset-password", { state: { email: email.trim() } });
+      if (data === true) {
+        // ✅ Código enviado, pasar a la pantalla de nueva contraseña
+        navigate("/reset-password", { state: { email: cleanEmail } });
       } else {
-        setError("Código incorrecto.");
+        setError("No se pudo enviar el código. Inténtalo nuevamente.");
       }
     } catch (err: any) {
       console.error(err);
-      const msg =
-        err?.response?.status === 400 || err?.response?.status === 401
-          ? "Código incorrecto."
-          : err?.response?.data?.message ||
-            "No se pudo verificar el código. Inténtalo nuevamente.";
-      setError(msg);
+      const backendMsg =
+        err?.response?.data?.detail || err?.response?.data?.message;
+
+      // 404 -> correo no registrado
+      if (err?.response?.status === 404 && backendMsg) {
+        setError(backendMsg); // "El correo no está registrado."
+      } else {
+        setError(
+          backendMsg || "No se pudo enviar el código. Inténtalo nuevamente."
+        );
+      }
     } finally {
-      setVerifying(false);
+      setSending(false);
     }
   };
 
@@ -98,7 +76,6 @@ export default function ForgotPassword() {
           Ingresa tu correo y te enviaremos un código de verificación.
         </p>
 
-        {/* Email */}
         <label className="fp-label" htmlFor="email">
           Correo electrónico
         </label>
@@ -108,7 +85,7 @@ export default function ForgotPassword() {
           placeholder="tucorreo@gmail.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          disabled={sending || verifying}
+          disabled={sending}
           className="fp-input"
         />
 
@@ -116,39 +93,13 @@ export default function ForgotPassword() {
           type="button"
           className="fp-btn primary"
           onClick={handleSendCode}
-          disabled={sending || verifying || cooldown > 0}
+          disabled={sending || cooldown > 0}
         >
           {sending
             ? "Enviando..."
             : cooldown > 0
             ? `Reenviar código (${cooldown}s)`
-            : codeSent
-            ? "Reenviar código"
             : "Enviar código"}
-        </button>
-
-        {/* Código */}
-        <label className="fp-label" htmlFor="code" style={{ marginTop: 14 }}>
-          Código de verificación
-        </label>
-        <input
-          id="code"
-          type="text"
-          inputMode="numeric"
-          placeholder="Ingresa el código recibido"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          disabled={!codeSent || verifying}
-          className="fp-input"
-        />
-
-        <button
-          type="button"
-          className="fp-btn success"
-          onClick={handleVerify}
-          disabled={!codeSent || verifying}
-        >
-          {verifying ? "Verificando..." : "Verificar"}
         </button>
 
         {message && <p className="fp-message">{message}</p>}
